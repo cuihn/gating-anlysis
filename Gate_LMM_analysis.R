@@ -25,7 +25,7 @@ library(ggpubr)
 setwd('C://Users//hcui8//Dropbox//Trying//Gate_analysis')
 
 #import data of all participants
-gate_all_rating <- read.csv('CCGating2_ALL DATA_YM_july232018.csv')
+gate_all_rating <- read.csv('CCGating2_ALL DATA_YM_july232018.csv') 
 gate_EIP_score <- read.csv('CCGating2_EIP_ALL PARTICIPANTSjuly2018.csv')
 
 summary(gate_all_rating)
@@ -86,7 +86,7 @@ shapiro.test(gate_all_rating$HuScore_raw)
 ks.test(gate_all_rating$HuScore_raw, 'pnorm')
 
 # LMM model 1 ---------------------------------------------------------
-# first LMM model for F tests and separated tests for main and interactions effect
+
 # {use data for GFULL condition only}
 # {run separately on Hu scores and EIP}
 # MODEL 1:	Perceiver (MAND, ARAB) x Event (VOC, L1)
@@ -105,14 +105,14 @@ boxplot(HuScore_raw~ProsodybyGrp, Gfull_listener_L1_VOC)
 boxplot(HuScore_raw ~ interaction(ProsodybyGrp, ItemEmotion2), data = Gfull_listener_L1_VOC)
 
 
-
+# first LMM model for F tests and separated tests for main and interactions effec
 LMM1 <- lmer(HuScore_raw ~ Group*ProsodybyGrp + (1|Subject) + (1|ItemEmotion), data = Gfull_listener_L1_VOC, REML = FALSE)
 
 summary(LMM1)
 anova(LMM1)
 summary(LMM1)$coefficients
 
-# Get the summary output as a character vector
+# Get the summary of LMM output as a character vector
 summary_LMM1 <- capture.output(summary(LMM1), anova(LMM1))
 write.csv(summary_LMM1,"summary_LMM1.csv")
 
