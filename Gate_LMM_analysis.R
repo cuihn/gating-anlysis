@@ -22,7 +22,8 @@ library(ggpubr)
 
 # set work directory ------------------------------------------------------
 
-setwd('C://Users//hcui8//Dropbox//Trying//Gate_analysis')
+# setwd('C://Users//hcui8//Dropbox//Trying//Gate_analysis')
+setwd('/Users/hainingcui/Dropbox/Trying/Gate_analysis')
 
 #import data of all participants
 gate_all_rating <- read.csv('CCGating2_ALL DATA_YM_july232018.csv') 
@@ -34,7 +35,6 @@ summary(gate_all_rating)
 gate_EIP_score <- gate_EIP_score %>%
   mutate(EIP = ifelse(EIP == "?", NA, EIP)) %>%
   filter(!is.na(EIP))
-
 # convert EIP to integer
 gate_EIP_score$EIP <- as.integer(gate_EIP_score$EIP)
 
@@ -89,7 +89,7 @@ ks.test(gate_all_rating$HuScore_raw, 'pnorm')
 
 # {use data for GFULL condition only}
 # {run separately on Hu scores and EIP}
-# MODEL 1:	Perceiver (MAND, ARAB) x Event (VOC, L1)
+# MODEL 1:	Perceived (MAND, ARAB) x Event (VOC, L1)
 
 # manipulate the data for LMM models to drop L2 and foreign conditions and keep GFULL
 Gfull_listener_L1_VOC <- gate_all_rating %>%
@@ -98,24 +98,60 @@ Gfull_listener_L1_VOC <- gate_all_rating %>%
   droplevels() %>%
   group_by(ListenerLang, ProsodybyGrp, Gate2)
 
+Gfull_listener_L1_VOC <- Gfull_listener_L1_VOC %>%
+  mutate(ItemEmotion2 = case_when(
+    ItemEmotion2 == "1" ~ "Anger",
+    ItemEmotion2 == "2" ~ "Fear",
+    ItemEmotion2 == "3" ~ "Happiness",
+    ItemEmotion2 == "4" ~ "Sadness",
+    TRUE ~ ItemEmotion2 
+    ))
+
+Gfull_listener_L1_VOC <- Gfull_listener_L1_VOC %>%
+  mutate(ProsodybyGrp = case_when(
+    ProsodybyGrp == "native" ~ "L1",
+    ProsodybyGrp == "nvv" ~ "Vocalization",
+    TRUE ~ ProsodybyGrp
+  ))
+
+# Using dplyr to change VOC 'happiness_laughter', 'happiness_pleasure' to 'Happiness" 
+Gfull_listener_L1_VOC <- Gfull_listener_L1_VOC %>%
+  mutate(ItemEmotion = case_when(
+    ItemEmotion %in% c('Happiness_laughter', 'Happiness_pleasure') ~ 'Happiness',
+    TRUE ~ ItemEmotion
+  ))
 
 # Plot Hu scores of GFULL by listeners' L1 and type of utterance (L1 or VOC)
-
-boxplot(HuScore_raw~ProsodybyGrp, Gfull_listener_L1_VOC)
+# To plot the second boxplot in a new window, open another quartz window
+quartz(width=10, height=8)  # Adjust size as needed
 boxplot(HuScore_raw ~ interaction(ProsodybyGrp, ItemEmotion2), data = Gfull_listener_L1_VOC)
 
+# first LMM model for F tests and separated tests for main and interactions effect
 
-# first LMM model for F tests and separated tests for main and interactions effec
-LMM1 <- lmer(HuScore_raw ~ Group*ProsodybyGrp + (1|Subject) + (1|ItemEmotion), data = Gfull_listener_L1_VOC, REML = FALSE)
+LMM_Gfull_Hu  <- lmer(
+  HuScore_raw ~ (ListenerLang + ProsodybyGrp)^2 + ListenerLang:ProsodybyGrp + 
+    (1 | Subject) + (1 | ItemEmotion) + 
+    (1 + ItemLang | ItemEmotion) + # Random slopes for these predictors within Group
+    (1 + ProsodybyGrp| ItemEmotion),
+  data = Gfull_listener_L1_VOC
+)
 
-summary(LMM1)
-anova(LMM1)
-summary(LMM1)$coefficients
+library(sjPlot)
+# write LMM results to a table in HTML format
+tab_model(LMM_Gfull_Hu , show.df = TRUE)
+
+# Get the LMM model summary output as a character vector
+summary_LMM_Q1 <- capture.output(summary(LMM_Q1), anova(LMM_Q1))
+
+LMM_Gfull_Hu <- lmer(HuScore_raw ~ Group*ProsodybyGrp + (1|Subject) + (1|ItemEmotion), data = Gfull_listener_L1_VOC, REML = FALSE)
+
+summary(LMM_Gfull_Hu)
+anova(LMM_Gfull_Hu)
+summary(LMM_Gfull_Hu)$coefficients
 
 # Get the summary of LMM output as a character vector
-summary_LMM1 <- capture.output(summary(LMM1), anova(LMM1))
-write.csv(summary_LMM1,"summary_LMM1.csv")
-
+summary_LMM_Gfull_Hu <- capture.output(summary(LMM_Gfull_Hu), anova(LMM_Gfull_Hu))
+write.csv(summary_LMM_Gfull_Hu,"summary_summary_LMM_Gfull_Hu.csv")
 
 # Group1: The estimate for Group1 is -0.06070. This suggests that, holding all other variables constant, being in Group1 (as opposed to the baseline group) is associated with a decrease of 0.06070 units in the dependent variable. However, the p-value (0.138565) is greater than 0.05, indicating that this effect is not statistically significant.
 # 
@@ -127,8 +163,6 @@ write.csv(summary_LMM1,"summary_LMM1.csv")
 
 # t-test (pairwise comparison) Estimated marginal means ------------------------------------------------------------------
 # t-test for direction of statistical significance 
-
-# simple effect on level of Truth value collapsed on Memory strength and REG----------------------------------------------
 
 (p_emm1 <- emmeans(LMM1,~TruthValue, pbkrtest.limit = 7808) %>% pairs(adjust="Tukey", side = "="))
 
@@ -174,99 +208,6 @@ names(output2)<-c("Effect","EMMeans","95% CI (Lower)","95% CI (Upper)","p-value"
 output2
 
 output2$`p-value`<-ifelse(output2$`p-value`<0.001,"<0.001",round(output2$`p-value`,3))
-
-# simple effect between Truth Value and REG collapsed on memory strength (familiarity)  --------------------------------------------------
-
-(p_emm3 <-emmeans(LMM1,~TruthValue:REG, pbkrtest.limit = 7808) %>% pairs(adjust="Tukey", side = "="))
-
-## Effect size
-(emm3<-emmeans(LMM1,~TruthValue:REG, pbkrtest.limit = 7808))
-(eff3<-eff_size(emm3, sigma = sigma(LMM1), edf = df.residual(LMM1)))
-# Negligible [0,0.2)
-# Small [0.2, 0.5)
-# Medium [0.5, 0.8)
-# Large [0.8, inf)
-
-## Output
-(CI_emm3<-confint(p_emm3))
-p_emm3<-as.data.frame(p_emm3)
-eff3<-as.data.frame(eff3)
-output3<-data.frame(p_emm3$contrast,round(p_emm3$estimate,1),round(CI_emm3$lower.CL,1),
-                    round(CI_emm3$upper.CL,1),round(p_emm3$p.value,3),round(eff3$effect.size,2))
-
-names(output3)<-c("Effect","EMMeans","95% CI (Lower)","95% CI (Upper)","p-value","Effect size")
-output3
-
-output3$`p-value`<-ifelse(output3$`p-value`<0.001,"<0.001",round(output3$`p-value`,3))
-
-## Effect size
-(emm4<-emmeans(LMM1,~Familiarity:REG, pbkrtest.limit = 7808))
-(eff4<-eff_size(emm4, sigma = sigma(LMM1), edf = df.residual(LMM1)))
-# Negligible [0,0.2)
-# Small [0.2, 0.5)
-# Medium [0.5, 0.8)
-# Large [0.8, inf)
-
-## Output
-(CI_emm4<-confint(p_emm4))
-p_emm4<-as.data.frame(p_emm4)
-eff4<-as.data.frame(eff4)
-output4<-data.frame(p_emm4$contrast,round(p_emm4$estimate,1),round(CI_emm4$lower.CL,1),
-                    round(CI_emm4$upper.CL,1),round(p_emm4$p.value,3),round(eff4$effect.size,2))
-
-names(output4)<-c("Effect","EMMeans","95% CI (Lower)","95% CI (Upper)","p-value","Effect size")
-output4
-
-output4$`p-value`<-ifelse(output4$`p-value`<0.001,"<0.001",round(output4$`p-value`,3))
-
-
-# simple effect between Memory Strength, Truth Value, and REG  --------------------------------------------------
-
-(p_emm5 <-emmeans(LMM1,~Familiarity:TruthValue:REG, pbkrtest.limit = 7808) %>% pairs(adjust="Tukey", side = "="))
-
-## Effect size
-(emm5<-emmeans(LMM1,~Familiarity:TruthValue:REG, pbkrtest.limit = 7808)) # nolint: infix_spaces_linter.
-(eff5<-eff_size(emm5, sigma = sigma(LMM1), edf = df.residual(LMM1)))
-# Negligible [0,0.2)
-# Small [0.2, 0.5)
-# Medium [0.5, 0.8)
-# Large [0.8, inf)
-
-## Output
-(CI_emm5<-confint(p_emm5))
-p_emm5<-as.data.frame(p_emm5)
-eff5<-as.data.frame(eff5)
-output5<-data.frame(p_emm5$contrast,round(p_emm5$estimate,1),round(CI_emm5$lower.CL,1),
-                    round(CI_emm5$upper.CL,1),round(p_emm5$p.value,3),round(eff5$effect.size,2))
-
-names(output5)<-c("Effect","EMMeans","95% CI (Lower)","95% CI (Upper)","p-value","Effect size")
-output5
-
-output5$`p-value`<-ifelse(output5$`p-value`<0.001,"<0.001",round(output5$`p-value`,3))
-
-# simple effect for testing the interaction between Memory Strength and Truth Value collapsed on REG  --------------------------------------------------
-
-(p_emm6 <-emmeans(LMM1,~Familiarity:TruthValue, pbkrtest.limit = 7808) %>% pairs(adjust="Tukey", side = "="))
-
-## Effect size
-(emm6<-emmeans(LMM1,~Familiarity:TruthValue, pbkrtest.limit = 7808)) 
-(eff6<-eff_size(emm6, sigma = sigma(LMM1), edf = df.residual(LMM1)))
-# Negligible [0,0.2)
-# Small [0.2, 0.5)
-# Medium [0.5, 0.8)
-# Large [0.8, inf)
-
-## Output
-(CI_emm6<-confint(p_emm6))
-p_emm6<-as.data.frame(p_emm6)
-eff6<-as.data.frame(eff6)
-output6<-data.frame(p_emm6$contrast,round(p_emm6$estimate,1),round(CI_emm6$lower.CL,1),
-                    round(CI_emm6$upper.CL,1),round(p_emm6$p.value,3),round(eff6$effect.size,2))
-
-names(output6)<-c("Effect","EMMeans","95% CI (Lower)","95% CI (Upper)","p-value","Effect size")
-output6
-
-output6$`p-value`<-ifelse(output6$`p-value`<0.001,"<0.001",round(output6$`p-value`,3))
 
 
 # write out post hoc results in one csv -----------------------------------
