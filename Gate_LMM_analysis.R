@@ -13,6 +13,7 @@
 # library(knitr)
 # library(htmltools)
 # Import libs -------------------------------------------------------------
+library(rmarkdown)
 library(lme4)
 library(emmeans)
 library(lmerTest)
