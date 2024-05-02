@@ -13,6 +13,7 @@
 # library(knitr)
 # library(htmltools)
 # install.packages(ggpattern)
+# install.packages("papaja")
 # Import libs -------------------------------------------------------------
 library(rmarkdown)
 library(lme4)
@@ -32,7 +33,9 @@ library(sjPlot)
 library(RColorBrewer)
 library(knitr)
 library(sjPlot)
-
+library(ggpattern)
+library(apaTables)
+library(papaja)
 # set work directory ------------------------------------------------------
 setwd('C://Users//hcui8//Dropbox//Trying//Gate_analysis')
 # setwd('/Users/hainingcui/Dropbox/Trying/Gate_analysis')
@@ -168,8 +171,7 @@ nice_table(summary_gate_EIP)
 # ks.test(gate_HuScore$HuScore, 'pnorm')
 
 # Q1a LMM model for Hu Score as a function of L1 vs. Speech type (Gfulll gate only) ---------------------------------------------------------
-# {use data of GFULL condition only}
-# {run separately on Hu scores and EIP}
+# {use data of GFULL condition only}, {run separately on Hu scores and EIP}
 
 # filter data for LMM Q1a, manipulate the data for LMM models to drop L2 and Foreign conditions and keep GFULL
 df_Q1a_Gfull_L1_NVV <- gate_HuScore %>%
@@ -178,27 +180,31 @@ df_Q1a_Gfull_L1_NVV <- gate_HuScore %>%
   droplevels() %>%
   group_by(ListenerLang, ItemToListener, Gate)
 
+# add one more variable for ItemEmotion (VOC happiness combined in to happiness)
 df_Q1a_Gfull_L1_NVV$ItemEmotion2 <- df_Q1a_Gfull_L1_NVV$ItemEmotion
+levels(df_Q1a_Gfull_L1_NVV$ItemEmotion2)[levels(df_Q1a_Gfull_L1_NVV$ItemEmotion2) == "Happiness_laughter"] <- "Happiness"
+levels(df_Q1a_Gfull_L1_NVV$ItemEmotion2)[levels(df_Q1a_Gfull_L1_NVV$ItemEmotion2) == "Happiness_pleasure"] <- "Happiness"
 
+# convert to factors
 df_Q1a_Gfull_L1_NVV$ItemEmotion2 <- factor(df_Q1a_Gfull_L1_NVV$ItemEmotion2)
 df_Q1a_Gfull_L1_NVV$ItemEmotion <- factor(df_Q1a_Gfull_L1_NVV$ItemEmotion)
 df_Q1a_Gfull_L1_NVV$ListenerLang <- factor(df_Q1a_Gfull_L1_NVV$ListenerLang)
 
-levels(df_Q1a_Gfull_L1_NVV$ItemEmotion2)[levels(df_Q1a_Gfull_L1_NVV$ItemEmotion2) == "Happiness_laughter"] <- "Happiness"
-levels(df_Q1a_Gfull_L1_NVV$ItemEmotion2)[levels(df_Q1a_Gfull_L1_NVV$ItemEmotion2) == "Happiness_pleasure"] <- "Happiness"
+
 #summary data
 summary_df_Q1a <- df_Q1a_Gfull_L1_NVV %>%
   group_by(ListenerLang, ItemToListener) %>%
   summarise(
     Mean = mean(HuScore, na.rm = TRUE),
-    #Min = min(HuScore, na.rm = TRUE),
-    #Max = max(HuScore, na.rm = TRUE),
     SD = sd(HuScore, na.rm = TRUE),
+    #Min = min(HuScore, na.rm = TRUE),
+    #Max = max(HuScore, na.rm = TRUE)
     #Median = median(HuScore, na.rm = TRUE)
   ) %>%
-  ungroup()  # Remove grouping
+  ungroup()  
 
 print(summary_df_Q1a)
+nice_table(summary_df_Q1a)
 
 # first LMM model of Gfull gate-Hu Score
 # MODEL 1:	Perceived (MAND, ARAB) x Event (VOC, L1) as fixed factors
@@ -296,7 +302,7 @@ Q1a_custom_colors <- c(
 violin_Q1a_L1_VOC <-
   ggplot(df_Q1a_Gfull_L1_NVV,
          aes(
-           x = ItemType,
+           x = interaction(ItemType, ListenerLang),
            y = HuScore,
            fill = interaction(ItemType, ListenerLang)
          )) +
@@ -304,7 +310,7 @@ violin_Q1a_L1_VOC <-
   #geom_jitter(height = 0, width = 0.005) +
   scale_fill_manual(values = Q1a_custom_colors) +
   theme_minimal() +
-  labs(title = "HuScore(Gfull) as a function of emotion vocalization by L1 background",
+  labs(title = "HuScore(Gfull) as a function of event type and L1 background",
        x = "",
        y = "HuScore",
        fill = "Speech Type divided by L1 background")+
@@ -324,11 +330,17 @@ violin_Q1a_L1_VOC <-
 print(violin_Q1a_L1_VOC)
 
 violin_Q1a_L1_VOC +
-  geom_line(data=tibble(x=c(0.8, 1.15), y=c(1, 1)),
-            aes(x=x, y=y),
+  geom_line(data=tibble(x=c(1.1, 1.75), y=c(1, 1)),
+            aes(x=x, y=y), size=1,
             inherit.aes = FALSE) +
-  geom_text(data=tibble(x=1.0, y=1.04),
+  geom_text(data=tibble(x=1.45, y=1.02),
             aes(x=x, y=y, label="*"),size=6,
+            inherit.aes = FALSE) +
+  geom_line(data=tibble(x=c(3.2, 3.8), y=c(1, 1)),
+            aes(x=x, y=y), size=1,
+            inherit.aes = FALSE) +
+  geom_text(data=tibble(x=3.45, y=1.05),
+            aes(x=x, y=y, label="n.g"),size=5,
             inherit.aes = FALSE)
 
 # plot Q1-vocalization (Vocalization-Emotion ) -------------------------------------------------
@@ -376,10 +388,9 @@ violin_Q1a_VOC <-
            fill = interaction(ItemEmotion, ListenerLang)
          )) +
   geom_violin(position = position_dodge(width = 0.8), color = NA, trim = FALSE) +
-  #geom_jitter(height = 0, width = 0.1) +
   scale_fill_manual(values = all_colors) +
   theme_minimal() +
-  labs(title = "HuScore(Gfull) as a function of emotion vocalization by L1 background",
+  labs(title = "HuScore(Gfull) as a function of vocalization emotion and L1 background",
        x = "",
        y = "HuScore",
        fill = "Speech Type divided by L1 background")+
@@ -409,7 +420,7 @@ df_Q1a_Gfull_L1 <- gate_HuScore %>%
   group_by(ListenerLang, ItemToListener, Gate)
 
 #set color
-emotion_colors <- c(
+emotion_colors_L1 <- c(
   Anger = "#E63946",  # A vivid, slightly desaturated red
   Fear = "#457B9D",  # A soft, desaturated blue
   Happiness = "#F4A261",  # A warm, muted orange
@@ -421,11 +432,11 @@ lighten_color <- function(color, amount = 0.4) adjustcolor(color, amount)
 darken_color <- function(color, amount = 1.4) adjustcolor(color, amount)
 
 # Generate variations for each language
-emotion_colors_arabic <- setNames(sapply(emotion_colors, lighten_color), paste(names(emotion_colors), "Arabic", sep = "."))
-emotion_colors_mandarin <- setNames(sapply(emotion_colors, darken_color), paste(names(emotion_colors), "Mandarin", sep = "."))
+emotion_colors_arabic_L1 <- setNames(sapply(emotion_colors_L1, lighten_color), paste(names(emotion_colors_L1), "Arabic", sep = "."))
+emotion_colors_mandarin_L1 <- setNames(sapply(emotion_colors_L1, darken_color), paste(names(emotion_colors_L1), "Mandarin", sep = "."))
 
 # Combine into one vector for use in ggplot
-all_colors <- c(emotion_colors_arabic, emotion_colors_mandarin)
+all_colors_L1 <- c(emotion_colors_arabic_L1, emotion_colors_mandarin_L1)
 
 #plot box
 violin_Q1a_L1 <-
@@ -436,10 +447,9 @@ violin_Q1a_L1 <-
            fill = interaction(ItemEmotion, ListenerLang)
          )) +
   geom_violin(position = position_dodge(width = 0.8), color = NA, trim = FALSE) +
-  #geom_jitter(height = 0, width = 0.1) +
-  scale_fill_manual(values = all_colors) +
+  scale_fill_manual(values = all_colors_L1) +
   theme_minimal() +
-  labs(title = "HuScore(Gfull) as a function of emotion vocalization by L1 background",
+  labs(title = "HuScore(Gfull) as a function of utterance emotion and L1 background",
        x = "",
        y = "HuScore",
        fill = "Speech Type divided by L1 background")+
@@ -449,9 +459,9 @@ violin_Q1a_L1 <-
     pattern_density = 0.1,  # Adjust the density of the pattern lines
     pattern_spacing = 0.08, # Spacing between pattern lines
     pattern_angle = 45,     # Angle of the pattern lines
-    color = "black",        # Color of the pattern lines
     pattern_color = "white" , #Color of the pattern
-    trim = FALSE 
+    trim = FALSE ,
+    color = NA
   ) +
   theme(
     strip.text.x = element_text(size = 11, color = "black", face = "bold"),
@@ -485,14 +495,12 @@ LMM_EIP_L1_VOC  <- lmer(
   data = EIP_listener_L1_VOC_Gfull
 )
 
-
 # write LMM results to a table in HTML format
 tab_model(LMM_EIP_L1_VOC, show.df = TRUE)
 
 
 # Q1b t-test (pairwise comparison) Estimated marginal means ------------------------------------------------------------------
-
-Q1b_emm_EIP <- emmeans(LMM_EIP_L1_VOC, pairwise ~ ItemType|ListenerLang,
+Q1b_emm_EIP <- emmeans(LMM_EIP_L1_VOC, revpairwise ~ ItemType|ListenerLang, adjust="tukey",
                         lmer.df = "satterthwaite", 
                         lmerTest.limit = 5283)  # Adjust pbkrtest.limit if needed
 summary(Q1b_emm_EIP)
@@ -506,7 +514,6 @@ nice_table(contrasts_df_1b )
 
 # Q1b plot ----------------------------------------------------------------
 # Create the boxplot with an interaction fill between two fixed terms
-
 custom_colors_1b <- c(
   "vocalization.Arabic" = "#679267",  # Darker than #8FBC8F
   "utterance.Arabic" = "#20693D",       # Darker than #2E8B57
@@ -514,45 +521,54 @@ custom_colors_1b <- c(
   "utterance.Mandarin" = "#cc4c02"        # Darker than #e6550d
 )
 
-
+# Summary data Q1b
 EIP_summary <- EIP_listener_L1_VOC_Gfull %>%
   group_by(ListenerLang, ItemType) %>%
   summarize(
     mean_EIP = mean(EIPtime, na.rm = TRUE),
-    SE = sd(EIPtime, na.rm = TRUE) / sqrt(n()),
+    sd = sd(EIPtime, na.rm = TRUE) / sqrt(n()),
     .groups = 'drop'
   )
 
-box_P_EIP_Gfull <- ggplot(EIP_listener_L1_VOC_Gfull,
+print(EIP_summary)
+
+nice_table(EIP_summary)
+
+#plot Q1b
+bar_1b_EIP_Gfull <- ggplot(EIP_summary,
                           aes(
-                            x = ListenerLang,
-                            y = EIPtime,
+                            x = interaction(ItemType, ListenerLang),
+                            y = mean_EIP,
                             fill = interaction(ItemType, ListenerLang)
                           )) +
-  geom_violin(position = position_dodge(width = 0.8)) +
+  geom_col() +
+  geom_errorbar(aes(ymin=mean_EIP-sd, ymax=mean_EIP+sd),width = 0.2) +
   scale_fill_manual(values = custom_colors_1b) +
   theme_minimal() +
   labs(title = "EIP as a function of Speech type and L1 background",
        x = "ItemType divided by L1 background of listeners",
        y = "Mean EIP",
-       fill = "Speech Type* L1 Interaction") +
-  stat_summary(fun = mean, geom = "point", shape = 20, size = 3, color = "darkred", 
-               position = position_dodge(width = 0.8)) + guides(shape = FALSE) 
+       fill = "Speech Type*L1 Interaction") +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.title.x = element_text(vjust = -1.5, size = 12),
+    legend.position = "none"
+        )
 
 #quartz(width=10, height=8)  # Adjust size as needed
-box_P_EIP_Gfull
+bar_1b_EIP_Gfull
 
-box_P_EIP_Gfull +
-  geom_line(data=tibble(x=c(0.8, 1.2), y=c(2500, 2500)), 
+bar_1b_EIP_Gfull +
+  geom_line(data=tibble(x=c(1.25, 1.75), y=c(800, 800)), 
             aes(x=x, y=y),
             inherit.aes = FALSE) +
-  geom_text(data=tibble(x=1, y=2600), 
+  geom_text(data=tibble(x=1.5, y=800), 
             aes(x=x, y=y, label="*"), size=6,
             inherit.aes = FALSE) +
-  geom_line(data=tibble(x=c(1.8, 2.2), y=c(2500, 2500)), 
+  geom_line(data=tibble(x=c(3.25, 3.75), y=c(800, 800)), 
             aes(x=x, y=y),
             inherit.aes = FALSE) +
-  geom_text(data=tibble(x=2, y=2600), 
+  geom_text(data=tibble(x=3.5, y=800), 
             aes(x=x, y=y, label="*"),size=6,
             inherit.aes = FALSE)
 
@@ -563,14 +579,24 @@ box_P_EIP_Gfull +
  # x Duration (G200, G400, G500, G600, GFULL)
 
 # clean, fillter data
-L1_mandarin_VOC_gate <- gate_HuScore %>%
-  filter(ItemToListener != "Foreign", ItemToListener != "L2", ItemToListener != "L1", ListenerLang != "Arabic") %>%
+L1_mandarin_VOC_gate  <- gate_HuScore %>%
+  filter(ItemToListener != "Foreign", 
+         ItemToListener != "L2", 
+         ItemToListener != "L1", 
+         ListenerLang != "Arabic") %>%
   droplevels() %>%
   group_by(ListenerLang, ItemToListener)
 
+summary_L1_mandarin_VOC_gate <- L1_mandarin_VOC_gate %>%
+  group_by(Gate, ItemEmotion, ListenerLang) %>%
+  summarize(mean=mean(HuScore, na.rm=TRUE),
+            sd=sd(HuScore, na.rm=TRUE))
+  
+nice_table(summary_L1_mandarin_VOC_gate)
+
 #LMM model 
 LMM_Hu_mandarin_nvv_gate  <- lmer(
-  HuScore ~ (ItemEmotion + Gate)^2 + ItemEmotion:Gate + 
+  HuScore ~ (ItemEmotion + Gate)^2 + 
     (1 | Subject),
   data = L1_mandarin_VOC_gate
 )
@@ -586,16 +612,40 @@ Q2a_emm_mandarin_nvv_gate <- emmeans(LMM_Hu_mandarin_nvv_gate , pairwise ~ Gate|
                         lmerTest.limit = 625)  # Adjust pbkrtest.limit if needed
 
 summary(Q2a_emm_mandarin_nvv_gate)
-
 summary.Q2a.stats.table <- as.data.frame(summary(Q2a_emm_mandarin_nvv_gate))
-
 contrasts_df_2a <- summary.Q2a.stats.table$contrasts
-
 nice_table(contrasts_df_2a)
 
 # Q2a plot faced by gates -----------------------------------------------
 
 # Define shades of orange for each gate
+
+emotion_colors <- c(
+  Anger = "#E63946",  # A vivid, slightly desaturated red
+  Fear = "#457B9D",  # A soft, desaturated blue
+  Happiness_laughter = "#F4A261",  # A warm, muted orange
+  Happiness_pleasure = "#2A9D8F",  # A calming, desaturated teal
+  Sadness = "#9C89B8"  # A gentle, muted purple
+)
+
+# Function to lighten or darken colors
+lighten_color1 <- function(color, amount = 0.2) adjustcolor(color, amount)
+lighten_color2 <- function(color, amount = 0.4) adjustcolor(color, amount)
+lighten_color3 <- function(color, amount = 0.6) adjustcolor(color, amount)
+lighten_color4 <- function(color, amount = 0.8) adjustcolor(color, amount)
+lighten_color5 <- function(color, amount = 1.2) adjustcolor(color, amount)
+
+# Generate variations for each language
+emotion_colors_G200 <- setNames(sapply(emotion_colors, lighten_color1), paste(names(emotion_colors), "G200", sep = "."))
+emotion_colors_G400 <- setNames(sapply(emotion_colors, lighten_color2), paste(names(emotion_colors), "G400", sep = "."))
+emotion_colors_G500 <- setNames(sapply(emotion_colors, lighten_color3), paste(names(emotion_colors), "G500", sep = "."))
+
+emotion_colors_G600 <- setNames(sapply(emotion_colors, lighten_color4), paste(names(emotion_colors), "G600", sep = "."))
+emotion_colors_Gfull <- setNames(sapply(emotion_colors, lighten_color5), paste(names(emotion_colors), "GFULL", sep = "."))
+
+
+# Combine into one vector for use in ggplot
+all_colors <- c(emotion_colors_G200, emotion_colors_G400, emotion_colors_G500,emotion_colors_G600, emotion_colors_Gfull)
 
 gate_colors <- c(
   "G200" = "#fff7bc",  # lightest yellow
@@ -605,18 +655,19 @@ gate_colors <- c(
   "GFULL" = "#cc4c02"  # darkest yellow (leaning towards orange)
 )
 
+
 # Ensure your Gate variable is a factor with the levels in the correct order for the plot
 L1_mandarin_VOC_gate$Gate <- factor(L1_mandarin_VOC_gate$Gate, levels = c("G200", "G400", "G500", "G600", "GFULL"))
 
 # Create the plot
 box_P_NVV_manda_gate <- ggplot(L1_mandarin_VOC_gate,
                                aes(
-                                 x = Gate,
+                                 x = interaction(ItemEmotion,Gate),
                                  y = HuScore,
-                                 fill = Gate  # Fill boxes with gate color
+                                 fill = interaction(ItemEmotion,Gate)  # Fill boxes with gate color
                                )) +
   geom_violin(position = position_dodge(width = 0.8)) +
-  scale_fill_manual(values = gate_colors) +  # Use the defined orange shades
+  scale_fill_manual(values = all_colors) +  # Use the defined orange shades
   theme_minimal() +
   labs(title = "Hu score as a function of NVV type and gate (Mandarin listeners)",
        x = "Gate",
