@@ -852,7 +852,7 @@ tab_model(LMM_Hu_Mandarin_speech_gate, show.df = TRUE)
 
 # Q2c pairwise comparison t-tests ---------------------------------
 
-LMM_Hu_Mandarin_speech_gate <- emmeans(LMM_Hu_Mandarin_speech_gate , pairwise ~ Gate|ItemEmotion,
+LMM_Hu_Mandarin_speech_gate <- emmeans(LMM_Hu_Mandarin_speech_gate , pairwise ~ ItemEmotion|Gate,
                                   lmer.df = "satterthwaite", REML = FALSE,
                                   lmerTest.limit = 622)  # Adjust pbkrtest.limit if needed
 summary(LMM_Hu_Mandarin_speech_gate)
@@ -933,7 +933,6 @@ print(p_Q2c)
 
 #####
 # Q2d LMM Model for Hu Score as a function of Utterance vs. Gate by Arabic L1 listeners -------------------------------------
-
 # clean, filter data
 L1_Arabic_speech_gate <- gate_HuScore %>%
   filter(
@@ -957,7 +956,7 @@ tab_model(LMM_Hu_Arabic_speech_gate, show.df = TRUE)
 
 # Q2d pairwise comparison t-tests ---------------------------------------
 
-LMM_Hu_Arabic_speech_gate <- emmeans(LMM_Hu_Arabic_speech_gate , pairwise ~ Gate|ItemEmotion,
+LMM_Hu_Arabic_speech_gate <- emmeans(LMM_Hu_Arabic_speech_gate , pairwise ~ ItemEmotion|Gate,
                                        lmer.df = "satterthwaite", 
                                        lmerTest.limit = 622)  # Adjust pbkrtest.limit if needed
 summary(LMM_Hu_Arabic_speech_gate)
@@ -1054,7 +1053,7 @@ tab_model(LMM_Q3a_EIP_VOC_L1, show.df = TRUE)
 
 # Q3a t-tests -------------------------------------------------------------
 
-Q3a_emm_EIP_L1_Nvv <- emmeans(LMM_Q3a_EIP_VOC_L1, pairwise ~ ListenerLang|ItemEmotion, methods ="turkey",
+Q3a_emm_EIP_L1_Nvv <- emmeans(LMM_Q3a_EIP_VOC_L1, pairwise ~ ItemEmotion, methods ="turkey",
                                      lmer.df = "satterthwaite", 
                                      lmerTest.limit = 622)  # Adjust pbkrtest.limit if needed
 
@@ -1202,12 +1201,6 @@ summary_df_Q4a <- df_Q4a_all_speech_gate_man %>%
 
 nice_table(summary_df_Q4a)
 
-# LMM model of gate, emotion, speech-Hu Score (I)
-# LMM_Q4a_all_speech_gate_man  <- lmer(
-#   HuScore ~ (ItemToListener + ItemEmotion + Gate)^3 +  
-#     (1 | Subject),REML = FALSE,
-#   data = df_Q4a_all_speech_gate_man 
-# )
 
 LMM_Q4a_all_speech_gate_man  <- lmer(
   HuScore ~ (ItemToListener + Gate) ^ 2 +
@@ -1219,15 +1212,57 @@ LMM_Q4a_all_speech_gate_man  <- lmer(
 # write LMM results to a table in HTML format
 tab_model(LMM_Q4a_all_speech_gate_man, show.df = TRUE)
 
+
+# LMM model of gate, emotion, speech-Hu Score (I)
+# LMM_Q4a_all_speech_gate_man  <- lmer(
+#   HuScore ~ (ItemToListener + ItemEmotion + Gate)^3 +  
+#     (1 | Subject),REML = FALSE,
+#   data = df_Q4a_all_speech_gate_man 
+# )
+
 # Q4a t-test (pairwise comparison) Estimated marginal means ------------------------------------------------------------------
 Q4a_emm_Q4a_all_speech_man <- emmeans(LMM_Q4a_all_speech_gate_man, revpairwise ~ Gate|ItemToListener,
-                        lmer.df = "satterthwaite", 
-                        lmerTest.limit = 1500)  # Adjust pbkrtest.limit if needed
+                                      lmer.df = "satterthwaite", 
+                                      lmerTest.limit = 1500)  # Adjust pbkrtest.limit if needed
 
 summary(Q4a_emm_Q4a_all_speech_man)
 summary.Q4a.stats.table <- as.data.frame(summary(Q4a_emm_Q4a_all_speech_man))
 contrasts_df_4a <- as.data.frame(summary.Q4a.stats.table$contrasts)
 nice_table(contrasts_df_4a)
+
+# Q4a-b_combine -----------------------------------------------------------
+
+df_Q4a_all_speech_Gfull_man_arab <- gate_HuScore_drop_pleasure %>%
+  filter(ItemToListener != "Vocalization") %>%
+  #filter(ListenerLang == "Mandarin") %>%
+  filter(Gate == "GFULL") %>%
+  droplevels() %>%
+  group_by(ItemToListener, Gate, ItemEmotion)
+
+str(df_Q4a_all_speech_Gfull_man_arab)
+
+
+LMM_Q4a_all_speech_gate_man_arb  <- lmer(
+  HuScore ~ (ItemToListener + ListenerLang) ^ 2 +
+    (1 | Subject) + (1 | ItemEmotion),
+  REML = FALSE,
+  data = df_Q4a_all_speech_Gfull_man_arab
+)
+
+# write LMM results to a table in HTML format
+tab_model(LMM_Q4a_all_speech_gate_man_arb, show.df = TRUE)
+
+
+# Q4a-b t-tests pairwise comparison -----------------------------------------------
+Q4a_emm_Q4a_all_speech_man_arb <- emmeans(LMM_Q4a_all_speech_gate_man_arb, revpairwise ~ ListenerLang|ItemToListener,
+                                      lmer.df = "satterthwaite", 
+                                      lmerTest.limit = 1500)  # Adjust pbkrtest.limit if needed
+
+summary(Q4a_emm_Q4a_all_speech_man_arb)
+summary.Q4ab.stats.table <- as.data.frame(summary(Q4a_emm_Q4a_all_speech_man_arb))
+contrasts_df_4ab <- as.data.frame(summary.Q4ab.stats.table$contrasts)
+nice_table(contrasts_df_4ab)
+
 
 # Q4a plot ----------------------------------------------------------------
 #' emotion_colors <- c(
@@ -1453,18 +1488,19 @@ df_Q4c_all_speech_EIPMedian <- df_Q4c_all_speech_EIP %>%
     .groups = 'drop'
   )
 
-# LMM model with median EIP value 
-LMM_Q4c_all_speech_EIP  <- lmer(
-  median_EIP ~ (ListenerLang + ItemToListener + ItemEmotion)^3 +
-    (1 | ListenerID), REML = FALSE,
+
+# LMM model with median EIP value (new collapsed on emotion types)
+LMM_Q4c_all_speech_ListLanf_EIP  <- lmer(
+  median_EIP ~ (ListenerLang + ItemToListener)^2 +
+    (1 | ListenerID) + (1 | ItemEmotion), REML = FALSE,
   data = df_Q4c_all_speech_EIPMedian  
 )
 
 # write LMM results to a table in HTML format
-tab_model(LMM_Q4c_all_speech_EIP, show.df = TRUE)
+tab_model(LMM_Q4c_all_speech_ListLanf_EIP, show.df = TRUE)
 
 # Q4c t-tests -------------------------------------------------------------
-Q4c_emm_EIP_all_speech <- emmeans(LMM_Q4c_all_speech_EIP, revpairwise ~ ItemEmotion|ItemToListener|ListenerLang, methods ="turkey",
+Q4c_emm_EIP_all_speech <- emmeans(LMM_Q4c_all_speech_ListLanf_EIP, revpairwise ~ ListenerLang|ItemToListener, methods ="turkey",
                               lmer.df = "satterthwaite", 
                               lmerTest.limit = 4779)  # Adjust pbkrtest.limit if needed
 
