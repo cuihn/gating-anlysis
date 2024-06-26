@@ -1263,7 +1263,9 @@ Q3a_EIPMedian_summary <- df_Q3a_L1_VOC_EIPMedian  %>%
     median = mean(median_EIP, na.rm = TRUE),
     se_EIP = standard_error(median_EIP),
     .groups = 'drop'
-  )
+  ) %>%
+  mutate(ListenerLang = case_when(ListenerLang == "Mandarin" ~ "Chinese",
+                                  TRUE ~ ListenerLang))
 
 Q3a_EIPMedian_summary <- Q3a_EIPMedian_summary %>%
   mutate(
@@ -1301,6 +1303,7 @@ Q3a_bar_NVV_L1 <- ggplot(Q3a_EIPMedian_summary, aes(x = ItemEmotion, y = median,
 
 Q3a_bar_NVV_L1
 
+
 ##### (done)
 # Q3b LMM for EIP of Speech utterance as a function of L1 background vs.ItemEmotion  -----------------------------------------------------------
 
@@ -1317,7 +1320,9 @@ df_Q3b_L1_Speech_EIPMedian <- df_Q3b_L1_Speech_EIP %>%
   summarize(
     median_EIP = median(EIPtime, na.rm = TRUE),
     .groups = 'drop'
-  )
+  ) %>%
+  mutate(ListenerLang = case_when(ListenerLang == "Mandarin" ~ "Chinese",
+                                  TRUE ~ ListenerLang))
 
 nice_table(df_Q3b_L1_Speech_EIPMedian)
 
@@ -1362,7 +1367,9 @@ summary_df_Q3b <- df_Q3b_L1_Speech_EIPMedian %>%
   summarise(
     median = mean(median_EIP, na.rm = TRUE),
     se_EIP = standard_error(median_EIP),
-  ) %>%
+  ) %>% 
+  mutate(ListenerLang = case_when(ListenerLang == "Mandarin" ~ "Chinese",
+                                  TRUE ~ ListenerLang)) %>%
   ungroup()  # Remove grouping
 
 # add SE on the bar
@@ -1381,7 +1388,7 @@ Q3b_bar_L1_speech_EIP <- ggplot(summary_df_Q3b, aes(x = ItemEmotion, y = median,
   geom_bar(stat = "identity", position = position_dodge(width = 0.5), width = 0.5) +
   geom_col(position = position_dodge(width = 0.5), width = 0.3) +
   geom_errorbar(aes(ymin = lower, ymax = upper), position = position_dodge(width = 0.5), width = 0.25) +
-  labs(title = "Figure 2c. Median EIP as a function of Emotional speech and L1 background",
+  labs(title = "Figure 3c. Median EIP as a function of Emotional speech and L1 background",
        x = "Type of Emotional Speech",
        y = "Median EIP",
        fill = "") +
@@ -1392,6 +1399,8 @@ Q3b_bar_L1_speech_EIP <- ggplot(summary_df_Q3b, aes(x = ItemEmotion, y = median,
 Q3b_bar_L1_speech_EIP
 
 
+##### (done)
+##### (done)
 ##### (done)
 ##### (done)
 # Q4a LMM model for Hu Score as a function of L1 vs. Speech type (Mandarin) ---------------------------------------------------------
@@ -1442,45 +1451,13 @@ contrasts_df_4a <- as.data.frame(summary.Q4a.stats.table$contrasts)
 nice_table(contrasts_df_4a)
 
 # Q4a plot HuScore ----------------------------------------------------------------
-#' emotion_colors <- c(
-#'   'L1' = "#ef8a62",      # Warm terracotta
-#'   'L2' = "#67a9cf",      # Soft blue
-#'   'Foreign' = "#f7fcb9"# Light yellow
-#'   #'Sadness' = "#998ec3",   # Lavender
-#' )
-
-# Now create the plot with these colors
-# box_P4a <- ggplot(df_Q4a_all_speech_gate_man,
-#                              aes(
-#                                x = ItemToListener,
-#                                y = HuScore,
-#                                fill = ItemToListener  # Use ItemEmotion for fill
-#                              )) +
-#   geom_col(position = position_dodge(width = 0.8)) +
-#   scale_fill_manual(values = emotion_colors) +
-#   theme_minimal() +
-#   labs(title = "Figure4a. Hu score as a function of Speech type, Langauge type, and gate (Mandarin)",
-#        x = "Speech Emotion",
-#        y = "Mean Hu Score",
-#        fill = "Speech Emotion") +
-#   stat_summary(fun = mean, geom = "point", shape = 20, size = 3, color = "darkred",
-#                position = position_dodge(width = 0.8)) +
-#   facet_grid(ItemEmotion ~ Gate) +  # Use facet_grid for two-way faceting
-#   theme(strip.text.x = element_text(size = 12, color = "black", face = "bold"),
-#         strip.text.y = element_text(size = 12, color = "black", face = "bold"),
-#         panel.spacing.x = unit(3, "lines"),  # Adjust horizontal spacing
-#         panel.spacing.y = unit(3, "lines"))  # Adjust vertical spacing
-# 
-# #quartz(width=17, height=8) 
-# 
-# box_P4a 
-
-# scatter line plot 
 
 Man_speech_gate_mean <- df_Q4a_all_speech_gate_man %>%
   filter(Gate %in% c("G200", "G400", "G500", "G600", "GFULL")) %>%
   group_by(Gate,ItemToListener) %>%
   summarize(mean_HuScore = mean(HuScore, na.rm = TRUE), sd = sd(HuScore, na.rm = TRUE))
+
+
 
 
 last_points_pQ4a <- data.frame(
@@ -1560,40 +1537,8 @@ contrasts_df_4b <- as.data.frame(summary.Q4b.stats.table$contrasts)
 nice_table(contrasts_df_4b)
 
 # Q4b plot HuScore ----------------------------------------------------------------
-#' emotion_colors <- c(
-#'   'L1' = "#ef8a62",      # Warm terracotta
-#'   'L2' = "#67a9cf",      # Soft blue
-#'   'Foreign' = "#f7fcb9"# Light yellow
-#'   #'Sadness' = "#998ec3"   # Lavender
-#'   
-#' )
-#' 
-#' # Now create the plot with these colors
-#' box_P4b <- ggplot(df_Q4b_all_speech_gate_arb,
-#'                   aes(
-#'                     x = ItemToListener,
-#'                     y = HuScore,
-#'                     fill = ItemToListener  # Use ItemEmotion for fill
-#'                   )) +
-#'   geom_col(position = position_dodge(width = 0.8)) +
-#'   scale_fill_manual(values = emotion_colors) +
-#'   theme_minimal() +
-#'   labs(title = "Figure4b. Hu score as a function of Speech type, Language type, and gate (Arabic)",
-#'        x = "Item language",
-#'        y = "Mean Hu Score",
-#'        fill = "Speech Emotion") +
-#'   stat_summary(fun = mean, geom = "point", shape = 20, size = 3, color = "darkred",
-#'                position = position_dodge(width = 0.8)) +
-#'   facet_grid(ItemEmotion ~ Gate) +  # Use facet_grid for two-way faceting
-#'   theme(strip.text.x = element_text(size = 12, color = "black", face = "bold"),
-#'         strip.text.y = element_text(size = 12, color = "black", face = "bold"),
-#'         panel.spacing.x = unit(3, "lines"),  # Adjust horizontal spacing
-#'         panel.spacing.y = unit(3, "lines"))  # Adjust vertical spacing
-#' 
-#' #quartz(width=17, height=8) 
-#' box_P4b 
 
-arb_speech_gate_mean <- df_Q4a_all_speech_gate_arb %>%
+arb_speech_gate_mean <- df_Q4b_all_speech_gate_arb %>%
   filter(Gate %in% c("G200", "G400", "G500", "G600", "GFULL")) %>%
   group_by(Gate,ItemToListener) %>%
   summarize(mean_HuScore = mean(HuScore, na.rm = TRUE), sd = sd(HuScore, na.rm = TRUE))
@@ -1605,7 +1550,7 @@ last_points_pQ4b <- data.frame(
   Gate = "GFULL"  # Assuming the last point should be labeled at the GFULL gate
 )
 
-p_Q4b <- ggplot(arb_speech_gate_mean , aes(x = Gate, y = mean_HuScore, group = ItemToListener, color = ItemToListener)) +
+p_Q4b <- ggplot(arb_speech_gate_mean, aes(x = Gate, y = mean_HuScore, group = ItemToListener, color = ItemToListener)) +
   geom_point(size = 2) +
   geom_path(arrow = arrow(length = unit(0.3, "mm"))) +
   #geom_errorbar(aes(ymin=mean_HuScore-sd, ymax=mean_HuScore+sd),width = 0.03) +
@@ -1629,7 +1574,9 @@ p_Q4b <- ggplot(arb_speech_gate_mean , aes(x = Gate, y = mean_HuScore, group = I
         axis.ticks = element_line(size = .5, 
                                   colour = "black")) +
   scale_x_discrete(breaks = c("G200", "G400", "G500", "G600", "GFULL")) +
-  scale_y_continuous(breaks = seq(0, 0.6, by = 0.1))  # Specify y-axis tick locations# Adjust tick length
+  scale_y_continuous(breaks = seq(0, 0.6, by = 0.1)) +  # Specify y-axis tick locations# Adjust tick length
+  scale_x_continuous(breaks = c(2, 4, 5, 6, 8), labels = c("G200", "G400", "G500", "G600", "GFULL")) +
+  scale_y_continuous(breaks = seq(0, 1, by = 0.2))  # Specify y-axis tick locations# Adjust tick length
 
 
 print(p_Q4b)
@@ -1807,7 +1754,7 @@ Q4c_bar_AllLang
 # box_P4c 
 
 #####
-# Q6  Hu Score at G200 NVV and speech 
+# Q6 Hu Score at G200 NVV and speech 
 # # Q6a LMM model for Hu Score as a function of all Speech type (G200 gate only) ---------------------------------------------------------
 # # {use data of G200 condition only}
 # 
