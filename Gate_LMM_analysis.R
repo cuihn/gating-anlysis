@@ -43,10 +43,9 @@ library(patchwork)
 
 # set work directory ------------------------------------------------------
 setwd('C://Users//hcui8//Dropbox//Trying//Gate_analysis')
+
 # setwd('/Users/hainingcui/Dropbox/Trying/Gate_analysis')
-
-tidy_source("C://Users//hcui8//Dropbox//Trying//Gate_analysis//gating-anlysis//Gate_LMM_analysis.R")
-
+# tidy_source("C://Users//hcui8//Dropbox//Trying//Gate_analysis//gating-anlysis//Gate_LMM_analysis.R")
 
 # clean data ----------------------------------------------------------
 # clean Hu Score  -------------------------------------------------------------
@@ -86,32 +85,18 @@ print(str(gate_HuScore))
 # import EIP data (Yondu created dataframe in excel)
 gate_EIP <- read.csv('CCGating2_EIP_ALL PARTICIPANTSjuly2018.csv')
 
+gate_full_duration <- read.csv('gate_stimuli_duration_Gfull.csv')
+
+gate_EIP_duration <- merge(gate_EIP, gate_full_duration, by = c("RecordingIndex", "ItemName"))
+
+write.csv(gate_EIP_duration, file = "gate_EIP_duration.csv")
+
 # rename "ItemToListener" to "ItemToListener"
-gate_EIP <- gate_EIP %>%
+gate_EIP_duration <- gate_EIP_duration %>%
   rename(ItemToListener = ExpressionTypebyGrp )
 
-# gate EIP original
 # Rename level names
-gate_EIP_ori <- gate_EIP %>%
-  mutate(ItemToListener = case_when(
-    ItemToListener == "foreign" ~ "Foreign",
-    ItemToListener == "nvv" ~ "Vocalization",
-    ItemToListener == "native" ~ "L1",
-    TRUE ~ ItemToListener 
-  )) %>%
-  # mutate(ItemEmotion = case_when(
-  #   ItemEmotion == "Laughter" ~ "Happiness",
-  #   TRUE ~ ItemEmotion
-  # )) %>%
-  mutate(ItemType = case_when(
-    ItemType == "nonverbal vocalization" ~ "vocalization",
-    TRUE ~ ItemType
-  )) %>%
-  mutate(EIP = ifelse(EIP == "?", NA, EIP)) %>%
-  filter(!is.na(EIP))
-
-# Rename level names
-gate_EIP <- gate_EIP %>%
+gate_EIP_duration <- gate_EIP_duration %>%
   mutate(ItemToListener = case_when(
     ItemToListener == "foreign" ~ "Foreign",
     ItemToListener == "nvv" ~ "Vocalization",
@@ -130,7 +115,7 @@ gate_EIP <- gate_EIP %>%
   filter(!is.na(EIP))
 
 # convert EIP to integer
-gate_EIP$EIP <- as.integer(gate_EIP$EIP)
+gate_EIP_duration$EIP <- as.integer(gate_EIP_duration$EIP)
 
 # convert variables to factors
 col_EIP_factors <- c(
@@ -139,15 +124,15 @@ col_EIP_factors <- c(
   "ItemEmotion"
 )
 
-gate_EIP[col_EIP_factors] <- lapply(gate_EIP[col_EIP_factors], factor)
+gate_EIP_duration[col_EIP_factors] <- lapply(gate_EIP_duration[col_EIP_factors], factor)
 
+print(str(gate_EIP_duration))
 
-# drop Pleasure level
-gate_EIP_drop_pleasure <- gate_EIP %>%
+# drop Pleasure level in EIP df-------------------------------------------------
+gate_EIP_drop_pleasure <- gate_EIP_duration %>%
   filter(ItemEmotion != "Pleasure") %>%
   droplevels()
 
-print(str(gate_EIP))
 
 # summarize Hu Score  ---------------------------------------------------------
 
@@ -469,7 +454,7 @@ print(violin_Q1a_L1)
 
 
 # model 2 ---------------------------------------------------------------
-# Q1b LMM model for EIP as function of L1 vs. Speech type (Gfull gate only)   -------------------------------
+# Q1b LMM model for EIP (median of EIP) as function of L1 vs. Speech type (Gfull gate only)   -------------------------------
 
 # filler  EIP data for Gfull gate 
 
@@ -609,7 +594,7 @@ ggsave("Q1b_EIP.png", plot = bar_1b_EIP_Gfull, width = 10, height = 8, units = "
 
 
 # model 3 -------------------------------------------------------------
-# Q2a LMM model for HuScore as a function of NVV vs. Gate by Mandarin L1 listeners ----------------------------------------------------
+# Q2a LMM model for Hu Score as a function of NVV vs. Gate by Mandarin L1 listeners ----------------------------------------------------
 #  Emotion (ANG, FER, SAD, HAP-Amuse, HAP-Pleasure) vs. Duration (G200, G400, G500, G600, GFULL)
 
 # clean, filter data
@@ -852,6 +837,7 @@ print(p_Q2a)
 ggsave("Q2a_NVV_Hu_Chi.svg", plot = p_Q2a, width = 10, height = 8, units = "in", dpi = 300, limitsize = FALSE)
 
 
+
 # model 4 -------------------------------------------------------------
 # Q2b LMM model for Hu Score as a function of NVV vs. Gate by Arabic L1 listeners------------------------------------------
 
@@ -978,6 +964,7 @@ p_Q2b <-
 print(p_Q2b)
 
 ggsave("Q2b_NVV_Hu_Arb.svg", plot = p_Q2b, width = 10, height = 8, units = "in", dpi = 300, limitsize = FALSE)
+
 
 
 # model 5 ------------------------------------------------------------
@@ -1112,6 +1099,7 @@ ggsave("Q2c_Speech_Hu_Chi.svg", plot = p_Q2c,  width = 10, height = 8, units = "
 
 # Display the plot
 #quartz(width=10, height=8)  # Adjust size as needed (for OS use only)
+
 
 
 
@@ -1252,8 +1240,9 @@ ggsave("Q2_NVV_SPE_combine_point.png", plot = combined_figure2, width = 25, heig
 
 
 
+
 # model 7 ----------------------------------------------------------
-# Q3a LMM for EIP of NVV as a function of L1 background vs.ItemEmotion  -----------------------------------------------------------
+# Q3a LMM for EIP (median of EIP) of NVV as a function of L1 background vs.ItemEmotion  -----------------------------------------------------------
 # Vocalizations: Listener (MAND, ARAB) x Emotion (ANG, FER, SAD, HAP-Amuse, HAP-Pleasure) at Gfull
 # filter EIP data for Q3a
 df_Q3a_L1_VOC_EIP <- gate_EIP_drop_pleasure  %>%
@@ -1350,7 +1339,7 @@ ggsave("Q3a_NVV_EIP.png", plot = Q3a_bar_NVV_L1, width = 10, height = 8, units =
 
 
 # model 8 -----------------------------------------------------------
-# Q3b LMM for EIP of Speech utterance as a function of L1 background vs.ItemEmotion  -----------------------------------------------------------
+# Q3b LMM for EIP (median of EIP) of Speech utterance as a function of L1 background vs.ItemEmotion  -----------------------------------------------------------
 
 # clean EIP data for Gfull gate 
 df_Q3b_L1_Speech_EIP <- gate_EIP %>%
@@ -1441,6 +1430,7 @@ ggsave("Q3b_Speech_EIP.png", plot = Q3b_bar_L1_speech_EIP, width = 10, height = 
 ##### (done)
 
 ##### ------------------------------------------------------------------- (done)
+
 
 
 # model 9 ------------------------------------------------------------
@@ -1671,7 +1661,7 @@ nice_table(contrasts_df_4ab)
 # #####  ------------------------------------------------------------ (done)
 
 # model 12 ------------------------------------------------------------
-# Q4c LMM for EIP of speech as a function of L1 background, event language and ItemEmotion  -----------------------------------------------------------
+# Q4c LMM for EIP (median of EIP) of speech as a function of L1 background, event language and ItemEmotion  -----------------------------------------------------------
 # Listener (MAND, ARAB) x Emotion , Event (L1, L2, Foreign) , emotion (ANG, FER, SAD, HAP)
 
 # filter EIP data for Q4C
@@ -1775,3 +1765,129 @@ Q4c_bar_AllLang <- ggplot(summary_df_Q4c_median_mean, aes(x = ListenerLang, y = 
 print(Q4c_bar_AllLang)
 
 ggsave("Q4c_EIP.png", plot = Q4c_bar_AllLang, width = 10, height = 8, units = "in")
+
+
+# model 13 -----------------------------------------------------------
+# Q1b LMM model for EIP (median of EIP) as function of L1 vs. Speech type (Gfull gate only)   -------------------------------
+
+# filler  EIP data for Gfull gate 
+df_Q1b_EIP_listener_L1_VOC_Gfull <- gate_EIP_drop_pleasure %>%
+  filter(ItemToListener != "Foreign", ItemToListener != "L2") %>%
+  droplevels() %>%
+  group_by(ListenerLang, ItemToListener, EIP) %>%
+  mutate(ItemType = case_when(ItemType == "utterance" ~ 'Speech',
+                              ItemType == "vocalization" ~ "Vocalization",
+                              TRUE ~ ItemType)) %>%
+  mutate(ListenerLang = case_when(ListenerLang == "Mandarin" ~ "Chinese",
+                                  TRUE ~ ListenerLang))
+
+
+
+# new LMM model using value of EIP as dependent V, and add duration of Gfull stimuli as covariate
+LMM_Median_EIP_L1_VOC  <- lmer(
+  median_EIP ~ (ListenerLang + ItemType)^2 + 
+    (1 | ListenerID) + (1 | ItemEmotion), REML = FALSE,
+  data = df_Q1b_EIP_median 
+)
+
+# write LMM results to a table in HTML format
+tab_model(LMM_Median_EIP_L1_VOC, show.df = TRUE)
+
+# f-test
+print(anova(LMM_Median_EIP_L1_VOC))
+
+# Q1b t-test (pairwise comparison) Estimated marginal means ------------------------------------------------------------------
+Q1b_emm_EIP <- emmeans(LMM_Median_EIP_L1_VOC, revpairwise ~ ItemType|ListenerLang, adjust="tukey",
+                       lmer.df = "satterthwaite", 
+                       lmerTest.limit = 5283)  # Adjust pbkrtest.limit if needed
+summary(Q1b_emm_EIP)
+
+summary.Q1b.stats.table <- as.data.frame(summary(Q1b_emm_EIP))
+
+contrasts_df_1b <- summary.Q1b.stats.table$contrasts
+
+nice_table(contrasts_df_1b ) # sig for both directions
+
+# Q1b bar plot EIP (SE, sig contrasts added) ----------------------------------------------------------------
+
+# Create the boxplot with an interaction fill between two fixed terms
+custom_colors_1b <- c(
+  "Vocalization.Arabic" = "#679267",  # Darker than #8FBC8F
+  "Speech.Arabic" = "#20693D",       # Darker than #2E8B57
+  "Vocalization.Chinese" = "#e9967a",  # Darker than #fcb4a5
+  "Speech.Chinese" = "#cc4c02"        # Darker than #e6550d
+)
+
+# Function to calculate standard error
+standard_error <- function(x) {
+  sd(x, na.rm = TRUE) / sqrt(length(na.omit(x)))
+}
+
+# Summary data Q1b median and get se value
+Q1b_EIP_summary <- df_Q1b_EIP_median  %>%
+  group_by(ListenerLang, ItemType) %>%
+  summarize(
+    mean_median = mean(median_EIP, na.rm = TRUE),
+    se_EIP = standard_error(median_EIP),
+    .groups = 'drop'
+  )
+
+Q1b_EIP_summary <- Q1b_EIP_summary %>%
+  mutate(
+    lower = mean_median - se_EIP,
+    upper = mean_median + se_EIP
+  )
+
+print(Q1b_EIP_summary)
+
+nice_table(Q1b_EIP_summary)
+
+#plot Q1b
+bar_1b_EIP_Gfull <-
+  ggplot(Q1b_EIP_summary,
+         aes(
+           x = interaction(ItemType, ListenerLang),
+           y = mean_median,
+           fill = interaction(ItemType, ListenerLang)
+         )) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.5), width = 0.5) +
+  geom_col(position = position_dodge(width = 0.5), width = 0.3) +
+  geom_errorbar(aes(ymin = lower, ymax = upper), position = position_dodge(width = 0.5), width = 0.25) +
+  scale_fill_manual(values = custom_colors_1b) +
+  theme_minimal() +
+  labs(title = "Figure Q1b. Median EIP as a function of Event type and L1 background",
+       x = "",
+       y = "Median EIP",
+       fill = "") +
+  theme(
+    strip.text.x = element_text(size = 11, color = "black", face = "bold"),
+    axis.text.x = element_text(hjust = 0.5),  # Optional: rotate x-axis labels if needed
+    panel.spacing = unit(1, "lines"),  # Adjust spacing between panels if necessary
+    axis.ticks.length.x = unit(1, "pt"),  # Adjust length of ticks if needed
+    axis.text.x.bottom = element_text(margin = margin(1, 0, 1, 0, "lines")), # Adjust margin around text if needed
+    legend.position = "top",
+    plot.title = element_text(hjust = 0.5)) + # Center the title
+  coord_flip()
+
+
+#quartz(width=10, height=8)  # Adjust size as needed
+bar_1b_EIP_Gfull
+
+bar_1b_EIP_Gfull +
+  geom_line(data=tibble(x=c(1.25, 1.75), y=c(900, 900)), 
+            aes(x=x, y=y),
+            inherit.aes = FALSE) +
+  geom_text(data=tibble(x=1.5, y=910), 
+            aes(x=x, y=y, label="*"), size=6,
+            inherit.aes = FALSE) +
+  geom_line(data=tibble(x=c(3.25, 3.75), y=c(650, 650)), 
+            aes(x=x, y=y),
+            inherit.aes = FALSE) +
+  geom_text(data=tibble(x=3.5, y=660), 
+            aes(x=x, y=y, label="*"),size=6,
+            inherit.aes = FALSE)
+
+
+ggsave("Q1b_EIP.png", plot = bar_1b_EIP_Gfull, width = 10, height = 8, units = "in")
+
+
