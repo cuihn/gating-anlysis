@@ -510,7 +510,6 @@ print(violin_Q1a_L1)
 
 # #### -------------------------------------------------------------------- (done)
 
-
 # model 2 ---------------------------------------------------------------
 # Q1b LMM model for EIP (median of EIP) as function of L1 vs. Speech type   -------------------------------
 
@@ -650,7 +649,6 @@ bar_1b_EIP_Gfull +
 ggsave("Q1b_EIP.png", plot = bar_1b_EIP_Gfull, width = 10, height = 8, units = "in")
 
 
-
 # model 3 -------------------------------------------------------------
 # Q2a LMM model for Hu Score as a function of NVV vs. Gate by Mandarin L1 listeners ----------------------------------------------------
 #  Emotion (ANG, FER, SAD, HAP-Amuse, HAP-Pleasure) vs. Duration (G200, G400, G500, G600, GFULL)
@@ -696,127 +694,26 @@ summary.Q2a.stats.table <- as.data.frame(summary(Q2a_emm_mandarin_nvv_gate))
 contrasts_df_2a <- summary.Q2a.stats.table$contrasts
 nice_table(contrasts_df_2a) 
 
-# Q2a violin-plot faced, VOC, emotion, Mandarin listeners -----------------------------------------------
-# # Define shades of orange for each gate
-# emotion_colors <- c(
-#   Anger = "#E63946",  # A vivid, slightly desaturated red
-#   Fear = "#457B9D",  # A soft, desaturated blue
-#   Happiness = "#F4A261",  # A warm, muted orange
-#   #Happiness_pleasure = "#2A9D8F",  # A calming, desaturated teal
-#   Sadness = "#9C89B8"  # A gentle, muted purple
-# )
-# 
-# # Function to lighten or darken colors
-# lighten_color1 <-
-#   function(color, amount = 0.2)
-#     adjustcolor(color, amount)
-# lighten_color2 <-
-#   function(color, amount = 0.4)
-#     adjustcolor(color, amount)
-# lighten_color3 <-
-#   function(color, amount = 0.6)
-#     adjustcolor(color, amount)
-# lighten_color4 <-
-#   function(color, amount = 0.8)
-#     adjustcolor(color, amount)
-# lighten_color5 <-
-#   function(color, amount = 1.2)
-#     adjustcolor(color, amount)
-# 
-# # Generate variations for each language
-# emotion_colors_G200 <-
-#   setNames(sapply(emotion_colors, lighten_color1),
-#            paste(names(emotion_colors), "G200", sep = "."))
-# emotion_colors_G400 <-
-#   setNames(sapply(emotion_colors, lighten_color2),
-#            paste(names(emotion_colors), "G400", sep = "."))
-# emotion_colors_G500 <-
-#   setNames(sapply(emotion_colors, lighten_color3),
-#            paste(names(emotion_colors), "G500", sep = "."))
-# emotion_colors_G600 <-
-#   setNames(sapply(emotion_colors, lighten_color4),
-#            paste(names(emotion_colors), "G600", sep = "."))
-# emotion_colors_Gfull <-
-#   setNames(sapply(emotion_colors, lighten_color5),
-#            paste(names(emotion_colors), "GFULL", sep = "."))
-# 
-# # Combine into one vector for use in ggplot
-# all_colors <-
-#   c(
-#     emotion_colors_G200,
-#     emotion_colors_G400,
-#     emotion_colors_G500,
-#     emotion_colors_G600,
-#     emotion_colors_Gfull
-#   )
-# 
-# # Ensure your Gate variable is a factor with the levels in the correct order for the plot
-# df_Q2a_L1_mandarin_VOC_gate$Gate <-
-#   factor(L1_mandarin_VOC_gate$Gate,
-#          levels = c("G200", "G400", "G500", "G600", "GFULL"))
-# 
-# # Create the plot
-# vilion_Q2a_NVV_gate_manda <- ggplot(df_Q2a_L1_mandarin_VOC_gate,
-#                                aes(
-#                                  x = Gate,
-#                                  y = HuScore,
-#                                  fill = interaction(ItemEmotion, Gate)  # Fill boxes with gate color
-#                                )) +
-#   geom_violin(position = position_dodge(width = 0.8),
-#               color = NA,
-#               trim = FALSE) +
-#   scale_fill_manual(values = all_colors) +  # Use the defined orange shades
-#   theme_minimal() +
-#   labs(title = "FigureQ2a. Hu score as a function of NVV type and gate (Mandarin)",
-#        x = "Gate",
-#        y = "Mean Hu score",
-#        fill = "Gate") +
-#   stat_summary(
-#     fun = mean,
-#     geom = "point",
-#     shape = 20,
-#     size = 3,
-#     color = "black",
-#     position = position_dodge(width = 0.8)
-#   ) +
-#   facet_wrap( ~ ItemEmotion, nrow = 1) +  # Facet by emotion
-#   theme(
-#     strip.text.x = element_text(
-#       size = 12,
-#       color = "black",
-#       face = "bold"
-#     ),
-#     axis.text.x = element_text(angle = 45, hjust = 1),
-#     # Optional: rotate x-axis labels if needed
-#     panel.spacing = unit(1, "lines"),
-#     # Adjust spacing between panels if necessary
-#     axis.ticks.length.x = unit(4, "pt"),
-#     # Adjust length of ticks if needed
-#     axis.text.x.bottom = element_text(margin = margin(1, 0, 1, 0, "lines")),
-#     legend.position = "none",
-#     plot.title = element_text(hjust = 0.5)
-#   )
-# 
-# # Display the plot (mac only)
-# #quartz(width=10, height=8)  # Adjust size as needed
-# vilion_Q2a_NVV_gate_manda
-# 
 # Q2a Hu score, connected pointed plot -----------------------------------------------
 
-# Filter data, create mean
-L1_Mandarin_VOC_gate_mean <- df_Q2a_L1_mandarin_VOC_gate %>%
-  filter(Gate %in% c("G200", "G400", "G500", "G600", "GFULL")) %>%
-  group_by(Gate,ItemEmotion) %>%
-  summarize(mean_HuScore = mean(HuScore, na.rm = TRUE), sd = sd(HuScore, na.rm = TRUE)) %>%
-  mutate(ItemEmotion = case_when(
-    ItemEmotion == "Happiness_laughter" ~ "Happiness-amusement",
-    ItemEmotion == "Happiness_pleasure" ~ "Happiness-pleasure",
-    TRUE ~ ItemEmotion
-  ))
+# Filter data (use row mean or emmeans)
 
-nice_table(L1_Mandarin_VOC_gate_mean)
+# L1_Mandarin_VOC_gate_mean <- df_Q2a_L1_mandarin_VOC_gate %>%
+#   filter(Gate %in% c("G200", "G400", "G500", "G600", "GFULL")) %>%
+#   group_by(Gate,ItemEmotion) %>%
+#   summarize(mean_HuScore = mean(HuScore, na.rm = TRUE), sd = sd(HuScore, na.rm = TRUE)) %>%
+#   mutate(ItemEmotion = case_when(
+#     ItemEmotion == "Happiness_laughter" ~ "Happiness-amusement",
+#     ItemEmotion == "Happiness_pleasure" ~ "Happiness-pleasure",
+#     TRUE ~ ItemEmotion
+#   ))
+
+summary_emmeans_Q2a <- as.data.frame(summary(Q2a_emm_mandarin_nvv_gate$emmeans))
+
+nice_table(summary_emmeans_Q2a)
+
 # create a new colomn to specify tick position
-L1_Mandarin_VOC_gate_mean <- L1_Mandarin_VOC_gate_mean %>%
+summary_emmeans_Q2a <- summary_emmeans_Q2a %>%
   mutate(Gate_pos = case_when(
     Gate == "G200" ~ 2,
     Gate == "G400" ~ 4,
@@ -828,35 +725,39 @@ L1_Mandarin_VOC_gate_mean <- L1_Mandarin_VOC_gate_mean %>%
 # Create last_points_Q2a with additional Gate_pos
 last_points_Q2a <- data.frame(
   ItemEmotion = c("Anger", "Fear", "Happiness-amusement", "Happiness-pleasure", "Sadness"),
-  mean_HuScore = c(0.634, 0.698, 0.559, 0.183, 0.755),
+  emmean = c(0.634, 0.698, 0.559, 0.183, 0.755),
   Gate = factor("GFULL", levels = c("G200", "G400", "G500", "G600", "GFULL"))
 )
 
-# Merge last_points_Q2a with L1_Mandarin_VOC_gate_mean to get Gate_pos
-last_points_Q2a <- last_points_Q2a %>%
- mutate(Gate_pos = case_when(
-   Gate == "GFULL" ~ 8.3
- ))
+# define color scale
+ItemEmotion_color <- c("Sadness" = "#440154FF",          
+                       "Fear" = "#31688EFF",             
+                       "Anger" = "#35B779FF", 
+                       "Happiness" = "#FF99CC",
+                       "Happiness-amusement" = "#FF99CC",   
+                       "Happiness-pleasure" = "#F9844A")
 
-# scatter line plot 
 p_Q2a <-
   ggplot(
-    L1_Mandarin_VOC_gate_mean,
+    summary_emmeans_Q2a,
     aes(
       x = Gate_pos,
-      y = mean_HuScore,
+      y = emmean,
       group = ItemEmotion,
-      color = ItemEmotion
+      color = ItemEmotion,
+      fill = ItemEmotion   # Ensure that fill matches the ItemEmotion
     )
   ) +
+  geom_ribbon(aes(ymin = lower.CL, ymax = upper.CL), alpha = 0.1, color = NA) +
+  geom_errorbar(aes(ymin = emmean - SE, ymax = emmean + SE), width = 0.05) +
   geom_point(size = 5, shape = 17) +
   geom_path(arrow = arrow(length = unit(1.0, "mm"))) +
-  geom_errorbar(aes(ymin=mean_HuScore-sd, ymax=mean_HuScore+sd),width = 0.03) +
-  labs(#x = "Gate Interval (ms)", 
+  labs(
     y = "Vocalization \n Unbiased hit rate (HuScore)", 
-    title = "Chinese group") +
+    title = "Chinese group"
+  ) +
   geom_text(data = last_points_Q2a, 
-            aes(x = Gate_pos, label = ItemEmotion), 
+            aes(x = Gate_pos, y = emmean, label = ItemEmotion), 
             vjust = -1, 
             hjust = 1, 
             check_overlap = TRUE,
@@ -864,18 +765,18 @@ p_Q2a <-
             family = "Helvetica") + 
   theme(panel.background = element_blank()) +
   theme(legend.position = "none") +
-  theme(axis.title.x = element_blank(),  # Center x-axis label
+  theme(axis.title.x = element_blank(),  
         axis.title.y = element_text(vjust = 0.5, 
                                     hjust = 0.5, 
                                     size = 16,
                                     family = "Helvetica",
-                                    angle = 90), # Keep y-axis label vertical but centered
+                                    angle = 90), 
         axis.line = element_line(color = "black", 
                                  size = 1.0),
         plot.title = element_text(size = 16, 
                                   hjust = 0.5,
                                   family = "Helvetica"),
-        axis.ticks.length = unit(1.4,"mm"),
+        axis.ticks.length = unit(1.4, "mm"),
         axis.ticks = element_line(size = 1.0, 
                                   colour = "black"),
         axis.text.y = element_text(size = 16, 
@@ -887,24 +788,17 @@ p_Q2a <-
   scale_x_continuous(breaks = c(2, 4, 5, 6, 8), 
                      labels = c("G200", "G400", "G500", "G600", "GFULL"),
                      expand = expansion(mult = c(0.15, 0))) +
-  scale_y_continuous(limits = c(0, 1.0), 
+  scale_y_continuous(limits = c(-0.1, 1.0), 
                      breaks = seq(0, 1, by = 0.2),
-                     expand = expansion(mult = c(0,0))) + # Specify y-axis tick locations and Adjust tick length
-  scale_color_manual(values = c(
-    "Sadness" = "#440154FF",          # Purple
-    "Fear" = "#31688EFF",             # Blue
-    "Anger" = "#35B779FF",            # Green
-    "Happiness-amusement" = "#F9C",   # Pink
-    "Happiness-pleasure" = "#F9844A"  # Light Orange
-  ))
+                     expand = expansion(mult = c(0, 0))) + 
+  scale_color_manual(values = ItemEmotion_color) +
+  scale_fill_manual(values = ItemEmotion_color)  
 
+print(p_Q2a)
 # Display the plot
 p_Q2a
 
 ggsave("Q2a_NVV_Hu_Chi.svg", plot = p_Q2a, width = 10, height = 8, units = "in", dpi = 300, limitsize = FALSE)
-
-
-
 
 
 # model 4 -------------------------------------------------------------
@@ -928,39 +822,43 @@ LMM_Hu_Arabic_nvv_gate  <- lmer(
   data = df_Q2b_L1_Arabic_VOC_gate
 )
 
+summary(LMM_Hu_Arabic_nvv_gate )
 # write LMM results to a table in HTML format
 tab_model(LMM_Hu_Arabic_nvv_gate, show.df = TRUE)
 
 # F-test results for fixed effects
 print(anova(LMM_Hu_Arabic_nvv_gate))
 
+
 # Q2b t-tests -----------------------------------------------------------
-LMM_Hu_Arabic_nvv_gate <- emmeans(LMM_Hu_Arabic_nvv_gate , pairwise ~ ItemEmotion|Gate,
+Q2b_emm_Hu_Arabic_nvv_gate <- emmeans(LMM_Hu_Arabic_nvv_gate , pairwise ~ ItemEmotion|Gate,
                                     lmer.df = "satterthwaite", 
                                     lmerTest.limit = 625)  # Adjust pbkrtest.limit if needed
-summary(LMM_Hu_Arabic_nvv_gate)
+summary(Q2b_emm_Hu_Arabic_nvv_gate)
 
-summary.Q2b.stats.table <- as.data.frame(summary(LMM_Hu_Arabic_nvv_gate))
+summary.Q2b.stats.table <- as.data.frame(summary(Q2b_emm_Hu_Arabic_nvv_gate))
 
-contrasts_df_2b <- summary.Q2b.stats.table $contrasts
+contrasts_df_2b <- summary.Q2b.stats.table$contrasts
 
 nice_table(contrasts_df_2b )
 
 # Q2b connected point plot, VOC emotion, Arabic listeners, Hu Score -----------------------------------------------
 
-# scatter line plot 
-L1_Arabic_VOC_gate_mean <- df_Q2b_L1_Arabic_VOC_gate %>%
-  filter(Gate %in% c("G200", "G400", "G500", "G600", "GFULL")) %>%
-  group_by(Gate,ItemEmotion) %>%
-  mutate(ItemEmotion = case_when(
-    ItemEmotion == "Happiness_laughter" ~ "Happiness-amusement",
-    ItemEmotion == "Happiness_pleasure" ~ "Happiness-pleasure",
-    TRUE ~ ItemEmotion
-  ))%>%
-  summarize(mean_HuScore = mean(HuScore, na.rm = TRUE), sd = sd(HuScore, na.rm = TRUE))
+# filter data (use row mean or emmeans)
+# L1_Arabic_VOC_gate_mean <- df_Q2b_L1_Arabic_VOC_gate %>%
+#   filter(Gate %in% c("G200", "G400", "G500", "G600", "GFULL")) %>%
+#   group_by(Gate,ItemEmotion) %>%
+#   mutate(ItemEmotion = case_when(
+#     ItemEmotion == "Happiness_laughter" ~ "Happiness-amusement",
+#     ItemEmotion == "Happiness_pleasure" ~ "Happiness-pleasure",
+#     TRUE ~ ItemEmotion
+#   ))%>%
+#   summarize(mean_HuScore = mean(HuScore, na.rm = TRUE), sd = sd(HuScore, na.rm = TRUE))
+
+summary_emmeans_Q2b <- as.data.frame(summary(Q2b_emm_Hu_Arabic_nvv_gate$emmeans))
 
 # create a new colomn to specify tick position
-L1_Arabic_VOC_gate_mean <- L1_Arabic_VOC_gate_mean %>%
+summary_emmeans_Q2b  <- summary_emmeans_Q2b  %>%
   mutate(Gate_pos = case_when(
     Gate == "G200" ~ 2,
     Gate == "G400" ~ 4,
@@ -971,7 +869,7 @@ L1_Arabic_VOC_gate_mean <- L1_Arabic_VOC_gate_mean %>%
 
 last_points_Q2b <- data.frame(
   ItemEmotion = c("Anger", "Fear", "Sadness", "Happiness-amusement", "Happiness-pleasure"),
-  mean_HuScore = c(0.75621366, 0.71333102, 0.81856648, 0.56574978, 0.2237),
+  emmean = c(0.75621366, 0.71333102, 0.81856648, 0.56574978, 0.2237),
   Gate = "GFULL"  # Assuming the last point should be labeled at the GFULL gate
 )
 
@@ -984,17 +882,19 @@ last_points_Q2b <- last_points_Q2b %>%
 # plot
 p_Q2b <-
   ggplot(
-    L1_Arabic_VOC_gate_mean,
+    summary_emmeans_Q2b,
     aes(
       x = Gate_pos,
-      y = mean_HuScore,
+      y = emmean,
       group = ItemEmotion,
-      color = ItemEmotion
+      color = ItemEmotion,
+      fill = ItemEmotion
     )
   ) +
+  geom_ribbon(aes(ymin = lower.CL, ymax = upper.CL), alpha = 0.1, color = NA) +
+  geom_errorbar(aes(ymin = emmean - SE, ymax = emmean + SE), width = 0.05) +
   geom_point(size = 5) +
   geom_path(arrow = arrow(length = unit(1.0, "mm"))) +
-  #geom_errorbar(aes(ymin=mean_HuScore-sd, ymax=mean_HuScore+sd),width = 0.03) +
   labs(#x = "Gate Interval (ms)", 
        #y = "HuScore (vocalization - Arabic group)", 
        title = "Arabic group") +
@@ -1019,21 +919,15 @@ p_Q2b <-
   scale_x_continuous(breaks = c(2, 4, 5, 6, 8), 
                      labels = c("G200", "G400", "G500", "G600", "GFULL"),
                      expand = expansion(mult = c(0.15, 0))) +    # add padding only to the start of x-axis
-  scale_y_continuous(limits = c(0,1.1),
-                     breaks = seq(0.2, 1, by = 0.2),
-                     expand = expansion(mult = c(0,0))) +  # Specify y-axis tick locations# Adjust tick length
-  scale_color_manual(values = c(
-    "Sadness" = "#440154FF",          # Purple
-    "Fear" = "#31688EFF",             # Blue
-    "Anger" = "#35B779FF",            # Green
-    "Happiness-amusement" = "#F9C",   # Pink
-    "Happiness-pleasure" = "#F9844A"  # Light Orange
-  ))
+  scale_y_continuous(limits = c(-0.1, 1.0), 
+                     breaks = seq(0, 1, by = 0.2),
+                     expand = expansion(mult = c(0, 0))) +   # Specify y-axis tick locations# Adjust tick length
+  scale_color_manual(values = ItemEmotion_color) +
+  scale_fill_manual(values = ItemEmotion_color) 
 
 print(p_Q2b)
 
 ggsave("Q2b_NVV_Hu_Arb.svg", plot = p_Q2b, width = 10, height = 8, units = "in", dpi = 300, limitsize = FALSE)
-
 
 
 # model 5 ------------------------------------------------------------
@@ -1065,13 +959,13 @@ print(anova(LMM_Hu_Mandarin_speech_gate))
 
 # Q2c pairwise comparison t-tests ---------------------------------
 
-LMM_Hu_Mandarin_speech_gate <- emmeans(LMM_Hu_Mandarin_speech_gate , pairwise ~ Gate|ItemEmotion,
+Q2c_emm_Hu_Mandarin_speech_gate <- emmeans(LMM_Hu_Mandarin_speech_gate , pairwise ~ ItemEmotion|Gate,
                                   lmer.df = "satterthwaite", REML = FALSE,
                                   lmerTest.limit = 622)  # Adjust pbkrtest.limit if needed
-summary(LMM_Hu_Mandarin_speech_gate)
 
+summary(Q2c_emm_Hu_Mandarin_speech_gate)
 
-summary.Q2c.stats.table <- as.data.frame(summary(LMM_Hu_Mandarin_speech_gate))
+summary.Q2c.stats.table <- as.data.frame(summary(Q2c_emm_Hu_Mandarin_speech_gate))
 
 contrasts_df_2c <- summary.Q2c.stats.table$contrasts
 
@@ -1079,22 +973,17 @@ nice_table(contrasts_df_2c)
 
 # Q2c connected point plot-----------------------------------------------
 
-# scatter line plot 
-L1_Mandarin_speech_gate_mean <- L1_Mandarin_speech_gate %>%
-  filter(Gate %in% c("G200", "G400", "G500", "G600", "GFULL")) %>%
-  group_by(Gate, ItemEmotion) %>%
-  summarize(mean_HuScore = mean(HuScore, na.rm = TRUE),
-            sd = sd(HuScore, na.rm = TRUE))
+# filter data (use raw mean or emmeans)
+# L1_Mandarin_speech_gate_mean <- L1_Mandarin_speech_gate %>%
+#   filter(Gate %in% c("G200", "G400", "G500", "G600", "GFULL")) %>%
+#   group_by(Gate, ItemEmotion) %>%
+#   summarize(mean_HuScore = mean(HuScore, na.rm = TRUE),
+#             sd = sd(HuScore, na.rm = TRUE))
 
-
-last_points_speech_Man <- data.frame(
-  ItemEmotion = c("Anger", "Fear", "Sadness", "Happiness"),
-  mean_HuScore = c(0.588, 0.568, 0.659, 0.611),
-  Gate = "GFULL"  # Assuming the last point should be labeled at the GFULL gate
-)
+summary_emmeans_Q2c <- as.data.frame(summary(Q2c_emm_Hu_Mandarin_speech_gate$emmeans))
 
 # create a new colomn to specify tick position
-L1_Mandarin_speech_gate_mean <- L1_Mandarin_speech_gate_mean %>%
+summary_emmeans_Q2c <- summary_emmeans_Q2c %>%
   mutate(Gate_pos = case_when(
     Gate == "G200" ~ 2,
     Gate == "G400" ~ 4,
@@ -1103,6 +992,11 @@ L1_Mandarin_speech_gate_mean <- L1_Mandarin_speech_gate_mean %>%
     Gate == "GFULL" ~ 8  # Double the distance for "GFULL"
   ))
 
+last_points_speech_Man <- data.frame(
+  ItemEmotion = c("Anger", "Fear", "Sadness", "Happiness"),
+  emmean = c(0.588, 0.568, 0.659, 0.611),
+  Gate = "GFULL"  # Assuming the last point should be labeled at the GFULL gate
+)
 
 # Merge last_points_Q2a with L1_Mandarin_VOC_gate_mean to get Gate_pos
 last_points_Q2c <- last_points_speech_Man  %>%
@@ -1113,17 +1007,19 @@ last_points_Q2c <- last_points_speech_Man  %>%
 #plot
 p_Q2c <-
   ggplot(
-    L1_Mandarin_speech_gate_mean ,
+    summary_emmeans_Q2c,
     aes(
       x = Gate_pos,
-      y = mean_HuScore,
+      y = emmean,
       group = ItemEmotion,
-      color = ItemEmotion
+      color = ItemEmotion,
+      fill = ItemEmotion
     )
   ) +
+  geom_ribbon(aes(ymin = lower.CL, ymax = upper.CL), alpha = 0.1, color = NA) +
+  geom_errorbar(aes(ymin = emmean - SE, ymax = emmean + SE), width = 0.05) +
   geom_point(size = 5, shape = 17) +
   geom_path(arrow = arrow(length = unit(1.0, "mm"))) +
-  #geom_errorbar(aes(ymin=mean_HuScore-sd, ymax=mean_HuScore+sd),width = 0.03) +
   labs(x = "Gate duration", 
        y = "Native prosody \n unbiased hit rate (HuScore)") + 
        #title = "Figure 2c. HuScore as a function of native speech prosody and gate duration (Chinese)") +
@@ -1152,15 +1048,11 @@ p_Q2c <-
   scale_x_continuous(breaks = c(2, 4, 5, 6, 8), 
                      labels = c("G200", "G400", "G500", "G600", "GFULL"),
                      expand = expansion(mult = c(0.15, 0))) +
-  scale_y_continuous(limits = c(0, 1.1),
-                     breaks = seq(0.2, 1, by = 0.2),
-                     expand = expansion(mult = c(0.0))) + # Specify y-axis tick locations# Adjust tick length
-  scale_color_manual(values = c(
-    "Sadness" = "#440154FF",    # Purple
-    "Fear" = "#31688EFF",       # Blue
-    "Anger" = "#35B779FF",      # Green
-    "Happiness" = "#F9C"  # Pink
-  ))
+  scale_y_continuous(limits = c(-0.1, 1.0), 
+                     breaks = seq(0, 1, by = 0.2),
+                     expand = expansion(mult = c(0, 0))) +  # Specify y-axis tick locations# Adjust tick length
+  scale_color_manual(values = ItemEmotion_color) +
+  scale_fill_manual(values = ItemEmotion_color) 
 
 print(p_Q2c)
 
@@ -1168,8 +1060,6 @@ ggsave("Q2c_Speech_Hu_Chi.svg", plot = p_Q2c,  width = 10, height = 8, units = "
 
 # Display the plot
 #quartz(width=10, height=8)  # Adjust size as needed (for OS use only)
-
-
 
 
 # model 6 -----------------------------------------------------------
@@ -1199,34 +1089,30 @@ tab_model(LMM_Hu_Arabic_speech_gate, show.df = TRUE)
 print(anova(LMM_Hu_Arabic_speech_gate))
 
 # Q2d pairwise comparison t-tests ---------------------------------------
-
-LMM_Hu_Arabic_speech_gate <- emmeans(LMM_Hu_Arabic_speech_gate , pairwise ~ Gate|ItemEmotion,
+Q2d_emm_Hu_Arabic_speech_gate <- emmeans(LMM_Hu_Arabic_speech_gate, pairwise ~ Gate|ItemEmotion,
                                        lmer.df = "satterthwaite", 
                                        lmerTest.limit = 622)  # Adjust pbkrtest.limit if needed
-summary(LMM_Hu_Arabic_speech_gate)
-summary.Q2d.stats.table <- as.data.frame(summary(LMM_Hu_Arabic_speech_gate))
-contrasts_df_2d <- summary.Q2d.stats.table$contrasts
-nice_table(contrasts_df_2d)
+summary(Q2d_emm_Hu_Arabic_speech_gate )
 
+summary.Q2d.stats.table <- as.data.frame(summary(Q2d_emm_Hu_Arabic_speech_gate))
+
+contrasts_df_2d <- summary.Q2d.stats.table$contrasts
+
+nice_table(contrasts_df_2d)
 
 # Q2d connected point-----------------------------------------------
 
-# scatter line plot 
-L1_Arabic_speech_gate_mean <- L1_Arabic_speech_gate %>%
-  filter(Gate %in% c("G200", "G400", "G500", "G600", "GFULL")) %>%
-  group_by(Gate, ItemEmotion) %>%
-  summarize(mean_HuScore = mean(HuScore, na.rm = TRUE),
-            sd = sd(HuScore, na.rm = TRUE))
+# filter data with raw mean or emmeans
+# L1_Arabic_speech_gate_mean <- L1_Arabic_speech_gate %>%
+#   filter(Gate %in% c("G200", "G400", "G500", "G600", "GFULL")) %>%
+#   group_by(Gate, ItemEmotion) %>%
+#   summarize(mean_HuScore = mean(HuScore, na.rm = TRUE),
+#             sd = sd(HuScore, na.rm = TRUE))
 
-
-last_points_speech_arb <- data.frame(
-  ItemEmotion = c("Anger", "Fear", "Sadness", "Happiness"),
-  mean_HuScore = c(0.5228, 0.5848, 0.4429, 0.7131),
-  Gate = "GFULL"  # Assuming the last point should be labeled at the GFULL gate
-)
+summary_emmeans_Q2d <- as.data.frame(summary(Q2d_emm_Hu_Arabic_speech_gate$emmeans))
 
 # create a new colomn to specify tick position
-L1_Arabic_speech_gate_mean <- L1_Arabic_speech_gate_mean %>%
+summary_emmeans_Q2d <- summary_emmeans_Q2d %>%
   mutate(Gate_pos = case_when(
     Gate == "G200" ~ 2,
     Gate == "G400" ~ 4,
@@ -1236,8 +1122,15 @@ L1_Arabic_speech_gate_mean <- L1_Arabic_speech_gate_mean %>%
   ))
 
 
+last_points_speech_arb <- data.frame(
+  ItemEmotion = c("Anger", "Fear", "Sadness", "Happiness"),
+  emmean = c(0.5228, 0.5848, 0.4429, 0.7131),
+  Gate = "GFULL"  # Assuming the last point should be labeled at the GFULL gate
+)
+
+
 # Merge last_points_Q2a with L1_Mandarin_VOC_gate_mean to get Gate_pos
-last_points_Q2d <- L1_Arabic_speech_gate_mean  %>%
+last_points_Q2d <- summary_emmeans_Q2d  %>%
   mutate(Gate_pos = case_when(
     Gate == "GFULL" ~ 8.2
   ))
@@ -1245,17 +1138,19 @@ last_points_Q2d <- L1_Arabic_speech_gate_mean  %>%
 #plot
 p_Q2d <-
   ggplot(
-    L1_Arabic_speech_gate_mean ,
+    summary_emmeans_Q2d,
     aes(
       x = Gate_pos,
-      y = mean_HuScore,
+      y = emmean,
       group = ItemEmotion,
-      color = ItemEmotion
+      color = ItemEmotion,
+      fill = ItemEmotion
     )
   ) +
+  geom_ribbon(aes(ymin = lower.CL, ymax = upper.CL), alpha = 0.1, color = NA) +
+  geom_errorbar(aes(ymin = emmean - SE, ymax = emmean + SE), width = 0.05) +
   geom_point(size = 5) +
   geom_path(arrow = arrow(length = unit(1.0, "mm"))) +
-  #geom_errorbar(aes(ymin=mean_HuScore-sd, ymax=mean_HuScore+sd),width = 0.03) +
   labs(x = "Gate duration") + 
        #y = "HuScore (native speech prosody - Arabic group)", 
       # title = "Figure 2d. HuScore as a function of native speech prosody and gate duration (Arabic)") +
@@ -1267,11 +1162,13 @@ p_Q2d <-
             size = 5) + 
   theme(panel.background = element_blank()) +
   theme(legend.position = "none") +
-  theme(axis.title.x = element_blank(),
+  theme(axis.title.x = element_text(vjust = 1, 
+                                     hjust = 0.5, 
+                                     size = 16), # Center x-axis label
         axis.title.y = element_blank(), # Center y-axis label
-        plot.title = element_text(size = 16, hjust = 0.5),
         axis.line = element_line(color = "black", 
                                  size = 1.0),
+        plot.title = element_text(size = 16, hjust = 0.5),
         axis.ticks.length = unit(1.4,"mm"),
         axis.ticks = element_line(size = 1.0, 
                                   colour = "black"),
@@ -1279,36 +1176,27 @@ p_Q2d <-
         axis.text.y = element_text(size = 16, colour = "black")) +
   scale_x_continuous(breaks = c(2, 4, 5, 6, 8), 
                      labels = c("G200", "G400", "G500", "G600", "GFULL"),
-                     expand = expansion(mult = c(0.15,0))) +
-  scale_y_continuous(limits = c(0, 1.1),
-                     breaks = seq(0.2, 1, by = 0.2),
-                     expand = expansion(mult = c(0,0))) + # Specify y-axis tick locations# Adjust tick length
-  scale_color_manual(values = c(
-    "Sadness" = "#440154FF",    # Purple
-    "Fear" = "#31688EFF",       # Blue
-    "Anger" = "#35B779FF",      # Green
-    "Happiness" = "#F9C"  # Pink
-))
+                     expand = expansion(mult = c(0.15, 0))) +    # add padding only to the start of x-axis
+  scale_y_continuous(limits = c(-0.1, 1.0), 
+                     breaks = seq(0, 1, by = 0.2),
+                     expand = expansion(mult = c(0, 0))) +   # Specify y-axis tick locations# Adjust tick length
+  scale_color_manual(values = ItemEmotion_color) +
+  scale_fill_manual(values = ItemEmotion_color) 
 
 print(p_Q2d)
 
 ggsave("Q2d_Speech_Hu_Arb.svg", plot = p_Q2d, width = 10, height = 8, units = "in", dpi = 300, limitsize = FALSE)
 
-
-
-# figure (2--combine) -----------------------------------------------
+# figure 1 (1--combine) -----------------------------------------------
 
 combined_figure2 <- (p_Q2a | p_Q2b) / 
   (p_Q2c | p_Q2d) +
-  plot_layout(widths = c(2, unit(2, "inch"), 2), heights = c(2, unit(2, "inch"), 2))
-
+  plot_layout(guides = 'collect') &
+  theme(plot.margin = margin(0.2, 0.2, 0.2, 0.2))
 
 print(combined_figure2)
 
-ggsave("Q2_NVV_SPE_combine_point.png", plot = combined_figure2, width = 25, height = 15, units = "in")
-
-
-
+ggsave("Figure2_combine.svg", plot = combined_figure2, width = 7000, height = 5000, units = "px", dpi = 300, limitsize = FALSE)
 
 
 # model 7 ----------------------------------------------------------
@@ -1408,7 +1296,6 @@ ggsave("Q3a_NVV_EIP.png", plot = Q3a_bar_NVV_L1, width = 10, height = 8, units =
 # #### -------------------------------------------------------------------- (done)
 
 
-
 # model 8 -----------------------------------------------------------
 # Q3b LMM for EIP (median of EIP) of Speech utterance as a function of L1 background vs.ItemEmotion  -----------------------------------------------------------
 
@@ -1501,7 +1388,6 @@ ggsave("Q3b_Speech_EIP.png", plot = Q3b_bar_L1_speech_EIP, width = 10, height = 
 ##### (done)
 
 ##### ------------------------------------------------------------------- (done)
-
 
 
 # model 9 ------------------------------------------------------------
@@ -1609,7 +1495,6 @@ print(p_Q4a)
 ggsave("Q4a_Chinese.svg", plot = p_Q4a, width = 10, height = 8, units = "in", dpi = 300, limitsize = FALSE)
 
 
-
 # model 10 ------------------------------------------------------------
 # Q4b LMM model for Hu Score as a function of L1 vs. Speech type (Arabic)  ---------------------------------------------------------
 
@@ -1713,7 +1598,6 @@ ggsave("Q4a_Arab.svg", plot = p_Q4b, width = 10, height = 8, units = "in", dpi =
 
 
 
-
 # model 11 -----------------------------------------------------------
 # Q4a-b_combine -----------------------------------------------------------
 
@@ -1754,7 +1638,6 @@ nice_table(contrasts_df_4ab)
 
 
 # #####  ------------------------------------------------------------ (done)
-
 # model 12 ------------------------------------------------------------
 # Q4c LMM for EIP (median of EIP) of speech as a function of L1 background, event language and ItemEmotion  -----------------------------------------------------------
 # Listener (MAND, ARAB) x Emotion , Event (L1, L2, Foreign) , emotion (ANG, FER, SAD, HAP)
@@ -1866,7 +1749,6 @@ ggsave("Q4c_EIP.png", plot = Q4c_bar_AllLang, width = 10, height = 8, units = "i
 # Attention, go back to line 83-130 to check how the data is cleaned and handled for followup models of EIPS.
 # old Model 12, model 8, model 7, model 2 used the median EIP as DV without adding Gfull duration as covariate
 # following models used mean EIP to with Gfull duration added in the model as a covariate
-
 # model 13(new model relevant to model 2 for Q1b )-----------------------------------------------------------
 # Q1b LMM model for EIP (mean EIP) as function of L1 vs. Speech type (Gfull gate duration as covariate)   -------------------------------
 
@@ -1966,8 +1848,7 @@ ggsave("Q1b_bar_mean_EIP.svg", plot = P_emmeans_Q1b, width = 10, height = 8, uni
 
 
 
-
-# model 14 (new model relevant for model 7 for Q3a) ----------------------------------------------------------
+# model 14 (new model relevant for model 7 for Q3a) -----------------------------
 # Q3a LMM for EIP (mean of EIP) as a function of L1 background and NVV ItemEmotion at Gfull -----------------------------------------------------------
 # Vocalizations: Listener (MAND, ARAB) x Emotion ((ANG, FER, SAD, HAP) drop HAP-Pleasure)
 # filter mean EIP data for Q3a
@@ -2142,7 +2023,6 @@ ggsave("Q3a_bar_mean_EIP_Arab.svg", plot = p_emmeans_Q3a_Arab, width = 10, heigh
 
 
 
-
 # model 15 (new model relevant for model 8 for Q3b)-----------------------------------------------------------
 # Q3b LMM for EIP (mean EIP) of Speech utterance as a function of L1 background vs.ItemEmotion  -----------------------------------------------------------
 
@@ -2287,7 +2167,6 @@ ggsave("Q3b_bar_mean_EIP_Arab.svg", plot = emmeans_Q3b_Arab, width = 10, height 
 
 
 
-
 # model 16 (new model relevant for model 12 for Q4c) ---------------------------------------
 # Q4c LMM for EIP (mean of EIP) as a function of L1 background, event language collapsed on ItemEmotion  -----------------------------------------------------------
 # Listener (MAND, ARAB) x Emotion , Event (L1, L2, Foreign)
@@ -2335,6 +2214,19 @@ plot_emm_Q4c
 
 pwpp(Q4c_emm_meanEIP_all_speech) +
   geom_vline(xintercept = 0.05, linetype = 2, color = 'red',show.legend = NA)
+
+# try to use emmip function 
+# Define the levels for the factors you want to visualize
+mylist <- list(ItemToListener = c("Foreign", "L1", "L2"),
+               ListenerLang = c("Arabic", "Mandarin"))
+
+# Create the interaction plot using your model
+interaction_plot <- emmip(LMM_Q4c_all_speech_ListLan_meanEIP_duration, 
+                          ItemToListener ~ ListenerLang, 
+                          at = mylist, 
+                          CIs = TRUE)
+
+interaction_plot
 
 # plot emmeans results of Q4c --------------------------------------------------
 
@@ -2399,3 +2291,6 @@ P_emmeans_Q4c <- ggplot(summary_emmeans_Q4c,
 print(P_emmeans_Q4c)
 
 ggsave("Q4cd_bar_mean_EIP.svg", plot = P_emmeans_Q4c, width = 10, height = 8, units = "in", dpi = 300, limitsize = FALSE)
+
+
+
