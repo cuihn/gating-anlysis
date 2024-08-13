@@ -43,7 +43,7 @@ library(patchwork)
 # set work directory ------------------------------------------------------
 setwd('C://Users//hcui8//Dropbox//Trying//Gate_analysis')
 
-# setwd('/Users/hainingcui/Dropbox/Trying/Gate_analysis')
+setwd('/Users/hainingcui/Dropbox/Trying/Gate_analysis')
 # tidy_source("C://Users//hcui8//Dropbox//Trying//Gate_analysis//gating-anlysis//Gate_LMM_analysis.R")
 
 # clean data --------------------------------------------------------------
@@ -198,7 +198,6 @@ summary_gate_HuScore <- gate_HuScore %>%
 # print a HTML table
 nice_table(summary_gate_HuScore)
 
-
 # summarize EIP -----------------------------------------------------------
 
 # summarize EIP
@@ -233,6 +232,7 @@ nice_table(summary_gate_EIP)
 ##### (done)
 
 # #### ------------------------------------------------------------------------- (done)
+
 
 
 # model 1 --------------------------------------------------------------
@@ -290,7 +290,7 @@ summary.Q1a.stats.table <- as.data.frame(summary(Q1a_emm_Gfull_Hu))
 contrasts_df_1a <- summary.Q1a.stats.table$contrasts
 nice_table(contrasts_df_1a)
 
-# Q1a bar plot Hu Score (revised 20240806)-------------------------------------------------
+# Q1a point plot (Fig3) Hu Score (revised 20240813)-------------------------------------------------
 
 # Function to calculate standard error
 standard_error <- function(x) {
@@ -323,36 +323,52 @@ print(summary_df_Q1a)
 
 nice_table(summary_df_Q1a)
 
-# plot bar HuScore 
-bar_1a_HuScore_Gfull <-
+# Ensure the interaction labels are correct
+summary_df_Q1a$interaction_label <- interaction(summary_df_Q1a$ItemType, summary_df_Q1a$ListenerLang)
+
+# Define the correct matching of shapes and colors
+shape_values <- c("Speech.Chinese" = 17, "Vocalization.Chinese" = 17,
+                  "Speech.Arabic" = 16, "Vocalization.Arabic" = 16)
+
+color_values <- c("Speech.Chinese" = "#F8766D", "Vocalization.Chinese" = "#00BFC4",
+                  "Speech.Arabic" = "#F8766D", "Vocalization.Arabic" = "#00BFC4")
+
+P_1a_HuScore_Gfull <-
   ggplot(summary_df_Q1a,
          aes(
-           x = ItemType,
+           x = ListenerLang,
            y = Mean_hu,
-           fill = ItemType
+           color = interaction_label,  # Use interaction label for color
+           shape = interaction_label   # Use interaction label for shape
          )) +
-  geom_bar_pattern(stat = "identity", 
-                   position = position_dodge(width = 0.5), 
-                   width = 0.5,
-                   pattern = ifelse(
-                     summary_emmeans_Q1b$ListenerLang == "Chinese",
-                     "stripe",
-                     "none"
-                   )) +
-  geom_errorbar(aes(ymin = lower, ymax = upper), position = position_dodge(width = 0.5), width = 0.25) +
+  geom_point(
+    size = 3,  # Adjust the size of the points
+    position = position_dodge(width = 0.5)
+  ) +
+  geom_errorbar(
+    aes(ymin = lower, ymax = upper),
+    position = position_dodge(width = 0.5),
+    width = 0.25
+  ) +
   theme_minimal() +
-  labs(title = "(3a)",
-       x = "",
-       y = "Mean HuScore",
-       fill = "") +
-  theme_minimal() +
+  labs(
+    title = "(3a)",
+    x = "",
+    y = "Mean HuScore",
+    color = "Item Type x Listener Language",  # Legend title for the interaction
+    shape = "Item Type x Listener Language"
+  ) +
   scale_y_continuous(
     limits = c(0, 1),
     breaks = seq(0, 1, by = 0.2),
     expand = expansion(mult = c(0, 0.05))  # Add a small expansion at the top
   ) +
+  scale_shape_manual(values = shape_values) +  # Apply correct shapes
+  scale_color_manual(values = color_values) +  # Apply correct colors
   theme(
-    legend.position = "none",
+    text = element_text(family = "Helvetica"),
+    legend.position = "top",  # Position the legend on top
+    legend.justification = "center",  # Center the legend horizontally
     axis.line = element_line(color = "black"),  # Add black axis lines
     axis.ticks = element_line(color = "black"),  # Add black axis ticks
     axis.ticks.length = unit(0.2, "cm"),  # Length of the ticks
@@ -362,15 +378,16 @@ bar_1a_HuScore_Gfull <-
     panel.spacing = unit(1, "cm"),  # Adjust spacing between panels
     strip.background = element_blank(),  # Remove default facet strip background
     strip.text = element_text(color = "black", size = 12)  # Customize facet labels
-  ) + 
-    facet_wrap(~ ListenerLang)# Center the title
+  ) 
 
-print(bar_1a_HuScore_Gfull)
+
+# Print the plot
+print(P_1a_HuScore_Gfull)
 
 # save img
 ggsave(
-  "Q1a_bar_mean_HuScore.svg",
-  plot = bar_1a_HuScore_Gfull,
+  "Q1a_bar_mean_HuScore_v2.svg",
+  plot = P_1a_HuScore_Gfull,
   width = 10,
   height = 8,
   units = "in",
@@ -509,144 +526,6 @@ print(violin_Q1a_L1)
 
 
 # #### -------------------------------------------------------------------- (done)
-
-# model 2 ---------------------------------------------------------------
-# Q1b LMM model for EIP (median of EIP) as function of L1 vs. Speech type   -------------------------------
-
-# filler  EIP data for Gfull gate 
-
-df_Q1b_EIP_listener_L1_VOC_Gfull <- gate_EIP_drop_pleasure %>%
-  filter(ItemToListener != "Foreign", ItemToListener != "L2") %>%
-  droplevels() %>%
-  group_by(ListenerLang, ItemToListener, EIP) %>%
-  mutate(ItemType = case_when(ItemType == "utterance" ~ 'Speech',
-                              ItemType == "vocalization" ~ "Vocalization",
-                              TRUE ~ ItemType)) %>%
-  mutate(ListenerLang = case_when(ListenerLang == "Mandarin" ~ "Chinese",
-                                  TRUE ~ ListenerLang))
-
-
-# new EIP analysis 20240521
-df_Q1b_EIP_median <- df_Q1b_EIP_listener_L1_VOC_Gfull %>%
-  group_by(ListenerLang, ItemType, ItemEmotion,ListenerID, ItemLang, ItemToListener) %>%
-  summarize(
-    median_EIP = median(EIPtime, na.rm = TRUE),
-    mean_EIP = mean(EIPtime, na.rm = TRUE),
-    .groups = 'drop'
-  )
-  
-print(df_Q1b_EIP_median)
-
-nice_table(df_Q1b_EIP_median)
-
-write.csv(df_Q1b_EIP_median, file = "df_Q1b_EIP_median.csv")
-
-# new LMM model using median value of EIP 
-LMM_Median_EIP_L1_VOC  <- lmer(
-  median_EIP ~ (ListenerLang + ItemType)^2 + 
-    (1 | ListenerID) + (1 | ItemEmotion), REML = FALSE,
-    data = df_Q1b_EIP_median 
-)
-
-# write LMM results to a table in HTML format
-tab_model(LMM_Median_EIP_L1_VOC, show.df = TRUE)
-
-# f-test
-print(anova(LMM_Median_EIP_L1_VOC))
-
-# Q1b t-test (pairwise comparison) Estimated marginal means ------------------------------------------------------------------
-Q1b_emm_EIP <- emmeans(LMM_Median_EIP_L1_VOC, revpairwise ~ ItemType|ListenerLang, adjust="tukey",
-                        lmer.df = "satterthwaite", 
-                        lmerTest.limit = 5283)  # Adjust pbkrtest.limit if needed
-summary(Q1b_emm_EIP)
-
-summary.Q1b.stats.table <- as.data.frame(summary(Q1b_emm_EIP))
-
-contrasts_df_1b <- summary.Q1b.stats.table$contrasts
-
-nice_table(contrasts_df_1b ) # sig for both directions
-
-# Q1b bar plot EIP (SE, sig contrasts added) ----------------------------------------------------------------
-
-# Create the boxplot with an interaction fill between two fixed terms
-custom_colors_1b <- c(
-  "Vocalization.Arabic" = "#679267",  # Darker than #8FBC8F
-  "Speech.Arabic" = "#20693D",       # Darker than #2E8B57
-  "Vocalization.Chinese" = "#e9967a",  # Darker than #fcb4a5
-  "Speech.Chinese" = "#cc4c02"        # Darker than #e6550d
-)
-
-# Function to calculate standard error
-standard_error <- function(x) {
-  sd(x, na.rm = TRUE) / sqrt(length(na.omit(x)))
-}
-
-# Summary data Q1b median and get se value
-Q1b_EIP_summary <- df_Q1b_EIP_median  %>%
-  group_by(ListenerLang, ItemType) %>%
-  summarize(
-    mean_median = mean(median_EIP, na.rm = TRUE),
-    se_EIP = standard_error(median_EIP),
-    .groups = 'drop'
-  )
-
-Q1b_EIP_summary <- Q1b_EIP_summary %>%
-  mutate(
-    lower = mean_median - se_EIP,
-    upper = mean_median + se_EIP
-  )
-
-print(Q1b_EIP_summary)
-
-nice_table(Q1b_EIP_summary)
-
-#plot Q1b
-bar_1b_EIP_Gfull <-
-  ggplot(Q1b_EIP_summary,
-         aes(
-           x = interaction(ItemType, ListenerLang),
-           y = mean_median,
-           fill = interaction(ItemType, ListenerLang)
-         )) +
-  geom_bar(stat = "identity", position = position_dodge(width = 0.5), width = 0.5) +
-  geom_col(position = position_dodge(width = 0.5), width = 0.3) +
-  geom_errorbar(aes(ymin = lower, ymax = upper), position = position_dodge(width = 0.5), width = 0.25) +
-  scale_fill_manual(values = custom_colors_1b) +
-  theme_minimal() +
-  labs(title = "Figure Q1b. Median EIP as a function of Event type and L1 background",
-       x = "",
-       y = "Median EIP",
-       fill = "") +
-  theme(
-    strip.text.x = element_text(size = 11, color = "black", face = "bold"),
-    axis.text.x = element_text(hjust = 0.5),  # Optional: rotate x-axis labels if needed
-    panel.spacing = unit(1, "lines"),  # Adjust spacing between panels if necessary
-    axis.ticks.length.x = unit(1, "pt"),  # Adjust length of ticks if needed
-    axis.text.x.bottom = element_text(margin = margin(1, 0, 1, 0, "lines")), # Adjust margin around text if needed
-    legend.position = "top",
-    plot.title = element_text(hjust = 0.5)) + # Center the title
-    coord_flip()
-
-
-#quartz(width=10, height=8)  # Adjust size as needed
-bar_1b_EIP_Gfull
-
-bar_1b_EIP_Gfull +
-  geom_line(data=tibble(x=c(1.25, 1.75), y=c(900, 900)), 
-            aes(x=x, y=y),
-            inherit.aes = FALSE) +
-  geom_text(data=tibble(x=1.5, y=910), 
-            aes(x=x, y=y, label="*"), size=6,
-            inherit.aes = FALSE) +
-  geom_line(data=tibble(x=c(3.25, 3.75), y=c(650, 650)), 
-            aes(x=x, y=y),
-            inherit.aes = FALSE) +
-  geom_text(data=tibble(x=3.5, y=660), 
-            aes(x=x, y=y, label="*"),size=6,
-            inherit.aes = FALSE)
-
-
-ggsave("Q1b_EIP.png", plot = bar_1b_EIP_Gfull, width = 10, height = 8, units = "in")
 
 
 # model 3 -------------------------------------------------------------
@@ -1189,209 +1068,19 @@ ggsave("Q2d_Speech_Hu_Arb.svg", plot = p_Q2d, width = 10, height = 8, units = "i
 
 # figure 1 (1--combine) -----------------------------------------------
 
-combined_figure2 <- (p_Q2a | p_Q2b) / 
+combined_figure1 <- (p_Q2a | p_Q2b) / 
   (p_Q2c | p_Q2d) +
   plot_layout(guides = 'collect') &
   theme(plot.margin = margin(0.2, 0.2, 0.2, 0.2))
 
-print(combined_figure2)
+print(combined_figure1)
 
-ggsave("Figure2_combine.svg", plot = combined_figure2, width = 7000, height = 5000, units = "px", dpi = 300, limitsize = FALSE)
+ggsave("Figure2_combine.svg", plot = combined_figure1, width = 7000, height = 5000, units = "px", dpi = 300, limitsize = FALSE)
 
-
-# model 7 ----------------------------------------------------------
-# Q3a LMM for EIP (median of EIP) of NVV as a function of L1 background vs.ItemEmotion  -----------------------------------------------------------
-
-# Vocalizations: Listener (MAND, ARAB) x Emotion (ANG, FER, SAD, HAP-Amuse, HAP-Pleasure)
-
-# filter EIP data for Q3a
-df_Q3a_L1_VOC_EIP <- gate_EIP_drop_pleasure  %>%
-  filter(ItemToListener != "Foreign", ItemToListener != "L2", ItemType != "utterance") %>%
-  droplevels() %>%
-  group_by(ListenerLang, ItemToListener, EIP)
-
-# new median filtered value df
-df_Q3a_L1_VOC_EIPMedian <- df_Q3a_L1_VOC_EIP %>%
-  group_by(ListenerLang, ItemType, ItemEmotion,ListenerID, ItemLang, ItemToListener) %>%
-  summarize(
-    mean_EIP = mean(EIPtime, na.rm = TRUE),
-    median_EIP = median(EIPtime, na.rm = TRUE),
-    #sd_EIP = sd(EIPtime, na.rm = TRUE),
-    .groups = 'drop'
-  )
-
-# Display the summary table
-print(df_Q3a_L1_VOC_EIPMedian )
-
-nice_table(df_Q3a_L1_VOC_EIPMedian) 
-
-# LMM model using median value df
-LMM_Q3a_EIP_VOC_L1  <- lmer(
-  median_EIP ~ (ListenerLang + ItemEmotion)^2 +
-    (1 | ListenerID), REML = FALSE,
-  data = df_Q3a_L1_VOC_EIPMedian 
-)
-
-# write LMM results to a table in HTML format
-tab_model(LMM_Q3a_EIP_VOC_L1, show.df = TRUE)
-
-# Perform the F-test
-print(anova(LMM_Q3a_EIP_VOC_L1))
-
-# Q3a t-tests -------------------------------------------------------------
-
-Q3a_emm_EIP_L1_Nvv <- emmeans(LMM_Q3a_EIP_VOC_L1, pairwise ~ ItemEmotion, methods ="turkey",
-                                     lmer.df = "satterthwaite", 
-                                     lmerTest.limit = 622)  # Adjust pbkrtest.limit if needed
-
-summary(Q3a_emm_EIP_L1_Nvv)
-summary.Q3a.stats.table <- as.data.frame(summary(Q3a_emm_EIP_L1_Nvv))
-contrasts_df_3a <- as.data.frame(summary.Q3a.stats.table$contrasts)
-nice_table(contrasts_df_3a)
-
-# Q3a EPI bar plot (SE added) ---------------------------------------------------------------
-
-# filter data for ploting Q3a EIP 
-Q3a_EIPMedian_summary <- df_Q3a_L1_VOC_EIPMedian  %>%
-  group_by(ListenerLang, ItemType, ItemEmotion) %>%
-  summarize(
-    mean_median = mean(median_EIP, na.rm = TRUE),
-    se_EIP = standard_error(median_EIP),
-    .groups = 'drop'
-  ) %>%
-  mutate(ListenerLang = case_when(ListenerLang == "Mandarin" ~ "Chinese",
-                                  TRUE ~ ListenerLang))
-# Q3a table 
-nice_table(Q3a_EIPMedian_summary)
-
-#SE
-Q3a_EIPMedian_summary <- Q3a_EIPMedian_summary %>%
-  mutate(
-    lower = mean_median - se_EIP,
-    upper = mean_median + se_EIP
-  )
-
-print(Q3a_EIPMedian_summary)
-
-# print table
-nice_table(Q3a_EIPMedian_summary)
-
-Q3a_bar_NVV_L1 <- ggplot(Q3a_EIPMedian_summary, aes(x = ItemEmotion, y = mean_median, fill = ListenerLang)) +
-  geom_bar(stat = "identity", position = position_dodge(width = 0.5), width = 0.5) +
-  geom_col(position = position_dodge(width = 0.5), width = 0.3) +
-  geom_errorbar(aes(ymin = lower, ymax = upper), position = position_dodge(width = 0.5), width = 0.25) +
-  labs(title = "Figure 2c. Median EIP as a function of Emotional vocalizations and L1 background",
-       x = "Type of Emotional vocalizations",
-       y = "mean of median EIP",
-       fill = "Listener group") +
-  theme_minimal() +
-  theme(legend.position = "top") +
-  coord_flip() # Flip the coordinates to make the bars horizontal
-
-Q3a_bar_NVV_L1
-
-ggsave("Q3a_NVV_EIP.png", plot = Q3a_bar_NVV_L1, width = 10, height = 8, units = "in")
-
-##### (done)
-# #### -------------------------------------------------------------------- (done)
-
-
-# model 8 -----------------------------------------------------------
-# Q3b LMM for EIP (median of EIP) of Speech utterance as a function of L1 background vs.ItemEmotion  -----------------------------------------------------------
-
-# clean EIP data for Gfull gate 
-df_Q3b_L1_Speech_EIP <- gate_EIP %>%
-  filter(ItemToListener != "Foreign", ItemToListener != "L2", ItemType != "vocalization") %>%
-  droplevels() %>%
-  group_by(ListenerLang, ItemToListener, EIP)
-
-
-# new median value
-df_Q3b_L1_Speech_EIPMedian <- df_Q3b_L1_Speech_EIP %>%
-  group_by(ListenerLang, ItemType, ItemEmotion,ListenerID, ItemLang, ItemToListener) %>%
-  summarize(
-    median_EIP = median(EIPtime, na.rm = TRUE),
-    .groups = 'drop'
-  ) %>%
-  mutate(ListenerLang = case_when(ListenerLang == "Mandarin" ~ "Chinese",
-                                  TRUE ~ ListenerLang))
-
-nice_table(df_Q3b_L1_Speech_EIPMedian)
-
-# LMM model (median)
-LMM_Q3b_L1_Speech_EIP  <- lmer(
-  median_EIP ~ (ListenerLang + ItemEmotion) ^ 2 + 
-  (1 | ListenerID),
-  REML = FALSE,
-  data = df_Q3b_L1_Speech_EIPMedian)
-
-# write LMM results to a table in HTML format
-tab_model(LMM_Q3b_L1_Speech_EIP, show.df = TRUE)
-
-# f-test
-print(anova(LMM_Q3b_L1_Speech_EIP))
-
-# Q3b t-tests -------------------------------------------------------------
-
-Q3b_emm_L1_speech <- emmeans(LMM_Q3b_L1_Speech_EIP, pairwise ~ ListenerLang|ItemEmotion,
-                                lmer.df = "satterthwaite", 
-                                lmerTest.limit = 1346)  # Adjust pbkrtest.limit if needed
-
-summary.Q3b.stats.table <- summary(Q3b_emm_L1_speech)
-
-summary.Q3b.stats.table <- as.data.frame(summary(Q3b_emm_L1_speech))
-contrasts_df_3b <- as.data.frame(summary.Q3b.stats.table$contrast)
-nice_table(contrasts_df_3b)
-
-# Q3b EPI bar plot ---------------------------------------------------------------
-
-# summarize filtered data
-summary_df_Q3b <- df_Q3b_L1_Speech_EIPMedian %>%
-  group_by(ListenerLang, ItemToListener,ItemEmotion) %>%
-  summarise(
-    median = mean(median_EIP, na.rm = TRUE),
-    se_EIP = standard_error(median_EIP),
-  ) %>% 
-  mutate(ListenerLang = case_when(ListenerLang == "Mandarin" ~ "Chinese",
-                                  TRUE ~ ListenerLang)) %>%
-  ungroup()  # Remove grouping
-
-# add SE on the bar
-summary_df_Q3b <- summary_df_Q3b %>%
-  mutate(
-    lower = median - se_EIP,
-    upper = median + se_EIP
-  )
-
-# HTML table
-nice_table(summary_df_Q3b)
-
-# plot
-Q3b_bar_L1_speech_EIP <- ggplot(summary_df_Q3b, aes(x = ItemEmotion, y = median, fill = ListenerLang)) +
-  geom_bar(stat = "identity", position = position_dodge(width = 0.5), width = 0.5) +
-  geom_col(position = position_dodge(width = 0.5), width = 0.3) +
-  geom_errorbar(aes(ymin = lower, ymax = upper), position = position_dodge(width = 0.5), width = 0.25) +
-  labs(title = "Figure 3c. Median EIP as a function of Emotional speech and L1 background",
-       x = "Type of Emotional Speech",
-       y = "Median EIP",
-       fill = "") +
-  theme_minimal() +
-  theme(legend.position = "top") +
-  coord_flip() # Flip the coordinates to make the bars horizontal
-
-Q3b_bar_L1_speech_EIP
-
-ggsave("Q3b_Speech_EIP.png", plot = Q3b_bar_L1_speech_EIP, width = 10, height = 8, units = "in")
-##### (done)
-##### (done)
-##### (done)
-##### (done)
-
-##### ------------------------------------------------------------------- (done)
 
 
 # model 9 ------------------------------------------------------------
-# Q4a LMM model for Hu Score as a function of L1 vs. Speech type (Mandarin) ---------------------------------------------------------
+# Q4a LMM model for Hu Score as a function of Speech Familiarity (Mandarin) ---------------------------------------------------------
 # manipulate the data for LMM models to drop L2 and Foreign conditions and keep GFULL
 df_Q4a_all_speech_gate_man <- gate_HuScore_drop_pleasure %>%
   filter(ItemToListener != "Vocalization") %>%
@@ -1422,7 +1111,7 @@ tab_model(LMM_Q4a_all_speech_gate_man, show.df = TRUE)
 print(anova(LMM_Q4a_all_speech_gate_man))
 
 # Q4a pairwise comparison t-test ------------------------------------------------------------------
-Q4a_emm_Q4a_all_speech_man <- emmeans(LMM_Q4a_all_speech_gate_man, revpairwise ~ ItemToListener|Gate,
+Q4a_emm_Q4a_all_speech_man <- emmeans(LMM_Q4a_all_speech_gate_man, revpairwise ~ Gate|ItemToListener,
                                       lmer.df = "satterthwaite", 
                                       lmerTest.limit = 1500)  # Adjust pbkrtest.limit if needed
 
@@ -1431,33 +1120,60 @@ summary.Q4a.stats.table <- as.data.frame(summary(Q4a_emm_Q4a_all_speech_man))
 contrasts_df_4a <- as.data.frame(summary.Q4a.stats.table$contrasts)
 nice_table(contrasts_df_4a)
 
-# Q4a plot HuScore connected point ----------------------------------------------------------------
+# Q4a plot  (Fig5) HuScore connected point (using emmeans 20240813) ----------------------------------------------------------------
 
-Man_speech_gate_mean <- df_Q4a_all_speech_gate_man %>%
-  filter(Gate %in% c("G200", "G400", "G500", "G600", "GFULL")) %>%
-  group_by(Gate,ItemToListener) %>%
-  summarize(mean_HuScore = mean(HuScore, na.rm = TRUE), sd = sd(HuScore, na.rm = TRUE)) %>%
+# Man_speech_gate_mean <- df_Q4a_all_speech_gate_man %>%
+#   filter(Gate %in% c("G200", "G400", "G500", "G600", "GFULL")) %>%
+#   group_by(Gate,ItemToListener) %>%
+#   summarize(mean_HuScore = mean(HuScore, na.rm = TRUE), sd = sd(HuScore, na.rm = TRUE)) %>%
+#   mutate(Gate_pos = case_when(
+#   Gate == "G200" ~ 2,
+#   Gate == "G400" ~ 4,
+#   Gate == "G500" ~ 5,
+#   Gate == "G600" ~ 6,
+#   Gate == "GFULL" ~ 8  # Double the distance for "GFULL"
+# ))
+
+# filter data
+summary_emmeans_Q4a <- as.data.frame(summary(Q4a_emm_Q4a_all_speech_man$emmeans))
+
+# create a new colomn to specify tick position
+summary_emmeans_Q4a <- summary_emmeans_Q4a %>%
   mutate(Gate_pos = case_when(
-  Gate == "G200" ~ 2,
-  Gate == "G400" ~ 4,
-  Gate == "G500" ~ 5,
-  Gate == "G600" ~ 6,
-  Gate == "GFULL" ~ 8  # Double the distance for "GFULL"
-))
+    Gate == "G200" ~ 2,
+    Gate == "G400" ~ 4,
+    Gate == "G500" ~ 5,
+    Gate == "G600" ~ 6,
+    Gate == "GFULL" ~ 8  # Double the distance for "GFULL"
+  ))
 
-last_points_Q4a <- Man_speech_gate_mean %>%
-  filter(Gate == "GFULL") %>%
-  mutate(Gate_pos = 8.2)
+
+last_points_Q4a <- summary_emmeans_Q4a %>%
+  mutate(Gate_pos = case_when(
+    Gate == "GFULL" ~ 8.2
+  ))
+  
 
 Q4a_legend_labels <- c("L1", "L2", "Foreign")
 
-p_Q4a <- ggplot(Man_speech_gate_mean, 
+
+Speech_color <- c(
+  "L1" = "#fc9272",
+  "L2" = "#6baed6",
+  "Foreign" = "#800080"
+)
+
+
+p_Q4a <- ggplot(summary_emmeans_Q4a, 
                 aes(x = Gate_pos, 
-                    y = mean_HuScore, 
-                    group = ItemToListener, 
-                    color = ItemToListener)) +
+                    y = emmean, 
+                    group = ItemToListener,
+                    color = ItemToListener,
+                    fill = ItemToListener)) +
   geom_point(size = 5,shape = 17) +
   geom_path(arrow = arrow(length = unit(0.3, "mm"))) +
+  geom_ribbon(aes(ymin = lower.CL, ymax = upper.CL), alpha = 0.1, color = NA) +
+  geom_errorbar(aes(ymin = emmean - SE, ymax = emmean + SE), width = 0.05) +
   labs(x = "Gate duration", 
        y = "HuScore", title = "(4a) Chinese") +
   geom_text(data = last_points_Q4a, 
@@ -1481,22 +1197,21 @@ p_Q4a <- ggplot(Man_speech_gate_mean,
   scale_x_continuous(breaks = c(2, 4, 5, 6, 8), 
                      labels = c("G200", "G400", "G500", "G600", "GFULL"),
                      expand = expansion(mult = c(0.15,0))) +
-  scale_y_continuous(limits = c(0, 1.1),
-                     breaks = seq(0.2, 1, by = 0.2),
-                     expand = expansion(mult = c(0,0))) +
-  scale_color_manual(values = c("L1" = "#fc9272", "L2" = "#6baed6", "Foreign" = "#8eFae1"),
-                    breaks = Q4a_legend_labels,
-                    labels = Q4a_legend_labels) 
+  scale_y_continuous(limits = c(-0.1, 1.0), 
+                     breaks = seq(0, 1, by = 0.2),
+                     expand = expansion(mult = c(0, 0))) + 
+  scale_color_manual(values = Speech_color) +
+  scale_fill_manual(values = Speech_color)
 
 # Print the plot
 print(p_Q4a)
 
 # Save the plot as a square image
-ggsave("Q4a_Chinese.svg", plot = p_Q4a, width = 10, height = 8, units = "in", dpi = 300, limitsize = FALSE)
+ggsave("Q5a_Chinese.svg", plot = p_Q4a, width = 10, height = 8, units = "in", dpi = 300, limitsize = FALSE)
 
 
 # model 10 ------------------------------------------------------------
-# Q4b LMM model for Hu Score as a function of L1 vs. Speech type (Arabic)  ---------------------------------------------------------
+# Q4b LMM model for Hu Score as a function of Speech Familiarity (Arabic)  ---------------------------------------------------------
 
 # filter data for LMM models to VOC condition
 df_Q4b_all_speech_gate_arb <- gate_HuScore_drop_pleasure %>%
@@ -1536,12 +1251,25 @@ summary.Q4b.stats.table <- as.data.frame(summary(Q4b_emm_all_speech_arb))
 contrasts_df_4b <- as.data.frame(summary.Q4b.stats.table$contrasts)
 nice_table(contrasts_df_4b)
 
-# Q4b plot HuScore connected point ----------------------------------------------------------------
+# Q4b plot (Fig5) HuScore connected point ----------------------------------------------------------------
 
-arb_speech_gate_mean <- df_Q4b_all_speech_gate_arb %>%
-  filter(Gate %in% c("G200", "G400", "G500", "G600", "GFULL")) %>%
-  group_by(Gate,ItemToListener) %>%
-  summarize(mean_HuScore = mean(HuScore, na.rm = TRUE), sd = sd(HuScore, na.rm = TRUE)) %>%
+# arb_speech_gate_mean <- df_Q4b_all_speech_gate_arb %>%
+#   filter(Gate %in% c("G200", "G400", "G500", "G600", "GFULL")) %>%
+#   group_by(Gate,ItemToListener) %>%
+#   summarize(mean_HuScore = mean(HuScore, na.rm = TRUE), sd = sd(HuScore, na.rm = TRUE)) %>%
+#   mutate(Gate_pos = case_when(
+#     Gate == "G200" ~ 2,
+#     Gate == "G400" ~ 4,
+#     Gate == "G500" ~ 5,
+#     Gate == "G600" ~ 6,
+#     Gate == "GFULL" ~ 8  # Double the distance for "GFULL"
+#   ))
+
+# filter data
+summary_emmeans_Q4b <- as.data.frame(summary(Q4b_emm_all_speech_arb$emmeans))
+
+# create a new colomn to specify tick position
+summary_emmeans_Q4b <- summary_emmeans_Q4b %>%
   mutate(Gate_pos = case_when(
     Gate == "G200" ~ 2,
     Gate == "G400" ~ 4,
@@ -1549,6 +1277,13 @@ arb_speech_gate_mean <- df_Q4b_all_speech_gate_arb %>%
     Gate == "G600" ~ 6,
     Gate == "GFULL" ~ 8  # Double the distance for "GFULL"
   ))
+
+
+Speech_color <- c(
+  "L1" = "#fc9272",
+  "L2" = "#6baed6",
+  "Foreign" = "#800080"
+)
 
 last_points_Q4b <- data.frame(
   ItemToListener= c("L1", "L2", "Foreign"),
@@ -1559,47 +1294,63 @@ last_points_Q4b <- data.frame(
 
 Q4b_legend_labels <- c("L1", "L2", "Foreign")
 
-p_Q4b <- ggplot(arb_speech_gate_mean, aes(x = Gate_pos, y = mean_HuScore, group = ItemToListener, color = ItemToListener)) +
+# plot
+p_Q4b <- ggplot(
+  summary_emmeans_Q4b,
+  aes(
+    x = Gate_pos,
+    y = emmean,
+    group = ItemToListener,
+    color = ItemToListener,
+    fill = ItemToListener
+  )
+) +
   geom_point(size = 5) +
   geom_path(arrow = arrow(length = unit(0.3, "mm"))) +
+  geom_ribbon(aes(ymin = lower.CL, ymax = upper.CL), alpha = 0.1, color = NA) +
+  geom_errorbar(aes(ymin = emmean - SE, ymax = emmean + SE), width = 0.05) +
   labs(x = "Gate Interval (ms)", y = "HuScore", title = "(4b) Arab") +
-  geom_text(data = last_points_Q4b, 
-            aes(x = Gate_pos, y = mean_HuScore, label = ItemToListener), 
-            vjust = -1, 
-            hjust = 1, 
-            check_overlap = FALSE) + 
+  geom_text(
+    data = last_points_Q4b,
+    aes(x = Gate_pos, y = mean_HuScore, label = ItemToListener),
+    vjust = -1,
+    hjust = 1,
+    check_overlap = FALSE
+  ) +
   theme(panel.background = element_blank()) +
   theme(legend.position = "none") +
-  theme(axis.title.x = element_blank(),
-        axis.title.y = element_blank(), # Center y-axis label
-        plot.title = element_text(size = 16, hjust = 0),
-        axis.line = element_line(color = "black", 
-                                 size = 1.0),
-        axis.ticks.length = unit(1.4,"mm"),
-        axis.ticks = element_line(size = 1.0, 
-                                  colour = "black"),
-        axis.text.x = element_text(size = 16, colour = "black"),
-        axis.text.y = element_text(size = 16, colour = "black")) +
-  scale_x_continuous(breaks = c(2, 4, 5, 6, 8), 
-                     labels = c("G200", "G400", "G500", "G600", "GFULL"),
-                     expand = expansion(mult = c(0.15,0))) +
-  scale_y_continuous(limits = c(0, 1.1),
-                     breaks = seq(0.2, 1, by = 0.2),
-                     expand = expansion(mult = c(0,0))) +
-  scale_color_manual(values = c("L1" = "#fc9272", "L2" = "#6baed6", "Foreign" = "#8eFae1"),
-                     breaks = Q4b_legend_labels,
-                     labels = Q4b_legend_labels) 
+  theme(
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    # Center y-axis label
+    plot.title = element_text(size = 16, hjust = 0),
+    axis.line = element_line(color = "black", size = 1.0),
+    axis.ticks.length = unit(1.4, "mm"),
+    axis.ticks = element_line(size = 1.0, colour = "black"),
+    axis.text.x = element_text(size = 16, colour = "black"),
+    axis.text.y = element_text(size = 16, colour = "black")
+  ) +
+  scale_x_continuous(
+    breaks = c(2, 4, 5, 6, 8),
+    labels = c("G200", "G400", "G500", "G600", "GFULL"),
+    expand = expansion(mult = c(0.15, 0))
+  ) +
+  scale_y_continuous(
+    limits = c(-0.1, 1.0),
+    breaks = seq(0, 1, by = 0.2),
+    expand = expansion(mult = c(0, 0))
+  ) +
+  scale_color_manual(values = Speech_color) +
+  scale_fill_manual(values = Speech_color)
 
 # Print the plot
 print(p_Q4b)
 
 # Save the plot as a square image
-ggsave("Q4a_Arab.svg", plot = p_Q4b, width = 10, height = 8, units = "in", dpi = 300, limitsize = FALSE)
-
-
+ggsave("Q5b_Arab.svg", plot = p_Q4b, width = 10, height = 8, units = "in", dpi = 300, limitsize = FALSE)
 
 # model 11 -----------------------------------------------------------
-# Q4a-b_combine -----------------------------------------------------------
+# Q4a-b_combine Hu Score -----------------------------------------------------------
 
 # filter data for LMM Q4a-4b
 df_Q4a_all_speech_Gfull_man_arab <- gate_HuScore_drop_pleasure %>%
@@ -1626,7 +1377,7 @@ tab_model(LMM_Q4a_all_speech_gate_man_arb, show.df = TRUE)
 print(anova(LMM_Q4a_all_speech_gate_man_arb))
 
 # Q4a-b t-tests pairwise comparison -----------------------------------------------
-Q4a_emm_Q4a_all_speech_man_arb <- emmeans(LMM_Q4a_all_speech_gate_man_arb, revpairwise ~ ItemLang|ListenerLang,
+Q4a_emm_Q4a_all_speech_man_arb <- emmeans(LMM_Q4a_all_speech_gate_man_arb, revpairwise ~ ListenerLang|ItemLang,
                                           lmer.df = "satterthwaite", 
                                           lmerTest.limit = 1500)  # Adjust pbkrtest.limit if needed
 
@@ -1635,121 +1386,11 @@ summary.Q4ab.stats.table <- as.data.frame(summary(Q4a_emm_Q4a_all_speech_man_arb
 contrasts_df_4ab <- as.data.frame(summary.Q4ab.stats.table$contrasts)
 nice_table(contrasts_df_4ab)
 
-
-
-# #####  ------------------------------------------------------------ (done)
-# model 12 ------------------------------------------------------------
-# Q4c LMM for EIP (median of EIP) of speech as a function of L1 background, event language and ItemEmotion  -----------------------------------------------------------
-# Listener (MAND, ARAB) x Emotion , Event (L1, L2, Foreign) , emotion (ANG, FER, SAD, HAP)
-
-# filter EIP data for Q4C
-df_Q4c_all_speech_EIP <- gate_EIP %>%
-  filter(ItemToListener != "vocalization", ItemType != "vocalization") %>%
-  droplevels() %>%
-  group_by(ListenerLang, ItemToListener, EIP)
-
-# the DV is named EIPtime
-summary_df_Q4c <- df_Q4c_all_speech_EIP  %>%
-  group_by(ListenerLang, ItemToListener, ItemEmotion) %>%
-  summarise(
-    Mean = mean(EIPtime, na.rm = TRUE),
-    Min = min(EIPtime, na.rm = TRUE),
-    Max = max(EIPtime, na.rm = TRUE),
-    SD = sd(EIPtime, na.rm = TRUE),
-    Median = median(EIPtime, na.rm = TRUE)
-  ) %>%
-  ungroup()  # Remove grouping
-
-# Display the summary table
-print(summary_df_Q4c)
-nice_table(summary_df_Q4c) 
-
-#new median value df
-df_Q4c_all_speech_EIPMedian <- df_Q4c_all_speech_EIP %>%
-  group_by(ListenerLang, ItemType, ItemEmotion,ListenerID, ItemLang, ItemToListener) %>%
-  summarize(
-    median_EIP = median(EIPtime, na.rm = TRUE),
-    .groups = 'drop'
-  )
-
-# LMM model with median EIP value (new collapsed on emotion types)
-LMM_Q4c_all_speech_ListLanf_EIP  <- lmer(
-  median_EIP ~ (ListenerLang + ItemToListener)^2 +
-    (1 | ListenerID) + (1 | ItemEmotion), REML = FALSE,
-  data = df_Q4c_all_speech_EIPMedian  
-)
-
-# write LMM results to a table in HTML format
-tab_model(LMM_Q4c_all_speech_ListLanf_EIP, show.df = TRUE)
-
-
-# f-test
-print(anova(LMM_Q4c_all_speech_ListLanf_EIP))
-
-# Q4c t-tests -------------------------------------------------------------
-Q4c_emm_EIP_all_speech <- emmeans(LMM_Q4c_all_speech_ListLanf_EIP, revpairwise ~ ItemToListener|ListenerLang, methods ="turkey",
-                              lmer.df = "satterthwaite", 
-                              lmerTest.limit = 4779)  # Adjust pbkrtest.limit if needed
-
-summary(Q4c_emm_EIP_all_speech)
-summary.Q4c.stats.table <- as.data.frame(summary(Q4c_emm_EIP_all_speech ))
-contrasts_df_4c <- as.data.frame(summary.Q4c.stats.table$contrasts)
-nice_table(contrasts_df_4c)
-
-# Q4c bar plot EIP ----------------------------------------------------------------
-
-# filter data for plot the mean of median
-summary_df_Q4c_median_mean <- df_Q4c_all_speech_EIPMedian  %>%
-  group_by(ListenerLang, ItemToListener) %>%
-  summarise(
-    Mean_median = mean(median_EIP, na.rm = TRUE),
-    se_EIP = standard_error(median_EIP),
-  ) %>%
-  mutate(ListenerLang = case_when(
-    ListenerLang == "Mandarin" ~ "Chinese",
-    TRUE ~ ListenerLang
-  )) %>%
-  ungroup() 
-
-summary_df_Q4c_median_mean$ItemToListener <- factor(summary_df_Q4c_median_mean$ItemToListener, levels = c("L1", "L2", "Foreign"))
-
-summary_df_Q4c_median_mean <- summary_df_Q4c_median_mean %>%
-  mutate(
-    lower = Mean_median - se_EIP,
-    upper = Mean_median + se_EIP
-  )
-
-print(summary_df_Q4c_median_mean)
-
-
-# Now create the plot with these colors
-Q4c_bar_AllLang <- ggplot(summary_df_Q4c_median_mean, aes(x = ListenerLang, y = Mean_median, fill = ItemToListener)) +
-  geom_bar(stat = "identity", position = position_dodge(width = 0.5), width = 0.5) +
-  geom_col(position = position_dodge(width = 0.5), width = 0.3) +
-  geom_errorbar(aes(ymin = lower, ymax = upper), position = position_dodge(width = 0.5), width = 0.25) +
-  labs(title = "Figure 4c. Median EIP as a function of Langauge Familiarity and L1 background",
-       x = "L1 background",
-       y = "Median EIP",
-       fill = "Language Familiarity") +
-  theme_minimal() +
-  theme(axis.title.x = element_text(vjust = -1.5, hjust = 0.5, size = 12),  # Center x-axis label
-        axis.title.y = element_text(vjust = 1, hjust = 0.5, size = 12), # Center y-axis label
-        axis.line = element_line(color = "black", size = 0.5),
-        axis.ticks.length = unit(1.4, "mm"),
-        axis.ticks = element_line(size = 0.5, color = "black")) +
-  theme(legend.position = "top") +
-  coord_flip() # Flip the coordinates to make the bars horizontal
-
-print(Q4c_bar_AllLang)
-
-ggsave("Q4c_EIP.png", plot = Q4c_bar_AllLang, width = 10, height = 8, units = "in")
-
-
 # new EIP analysis ------------------------------------------------------
 # Attention, go back to line 83-130 to check how the data is cleaned and handled for followup models of EIPS.
 # old Model 12, model 8, model 7, model 2 used the median EIP as DV without adding Gfull duration as covariate
 # following models used mean EIP to with Gfull duration added in the model as a covariate
-# model 13(new model relevant to model 2 for Q1b )-----------------------------------------------------------
+# model 13 (new model relevant to model 2 for Q1b )-----------------------------------------------------------
 # Q1b LMM model for EIP (mean EIP) as function of L1 vs. Speech type (Gfull gate duration as covariate)   -------------------------------
 
 # filler  EIP data for LMM model with Gfull duration. 
@@ -1791,43 +1432,44 @@ contrasts_df_1b_mean_duration <- summary.Q1b.stats.table_duration$contrasts
 
 nice_table(contrasts_df_1b_mean_duration) # sig for both directions
 
-# plot emmeans for Q1b ------------------------------------------------------------
+# (Fig 4)plot emmeans huScore for Q1b ------------------------------------------------------------
 
 summary_emmeans_Q1b <- as.data.frame(summary(Q1b_emm_EIP_mean_duration$emmeans))
+
+nice_table(summary_emmeans_Q1b)
 
 summary_emmeans_Q1b$ListenerLang <- factor(
   summary_emmeans_Q1b$ListenerLang,
   levels = c("Chinese", "Arabic")  # Ensure "Chinese" comes before "Arabic"
 )
 
-nice_table(summary_emmeans_Q1b)
+# filter EMMs Chinese group
+summary_emmeans_Q1b_man <- summary_emmeans_Q1b %>%
+  filter(summary_emmeans_Q1b$ListenerLang == "Chinese")
+
 
 # plot EMMs Chinese group
-P_emmeans_Q1b <- ggplot(summary_emmeans_Q1b,
+P_emmeans_Q1b_man <- ggplot(summary_emmeans_Q1b_man,
                         aes(x = ItemType, y = emmean, fill = ItemType)) +
-  geom_bar_pattern(
+  geom_bar(
     stat = "identity",
     position = position_dodge(width = 0.8),
-    width = 0.5,
-    pattern = ifelse(
-      summary_emmeans_Q1b$ListenerLang == "Chinese",
-      "stripe",
-      "none"
-    )
+    width = 0.5
   ) +
   geom_errorbar(
     aes(ymin = lower.CL, ymax = upper.CL),
     width = 0.25,
     position = position_dodge(width = 0.8)
   ) +
-  labs(x = "EventType", y = "Estimated Marginal Mean", title = "(3b)") +
+  labs(x = "Event Type", y = "Estimated Marginal Mean", title = "Fig4") +
   theme_minimal() +
   scale_y_continuous(
     limits = c(0, 1200),
-    breaks = seq(0, 1200, by = 200),
+    breaks = seq(0, 1200, by = 100),
     expand = expansion(mult = c(0, 0.05))  # Add a small expansion at the top
   ) +
   theme(
+    text = element_text(family = "Helvetica"),
     legend.position = "none",
     axis.line = element_line(color = "black"),  # Add black axis lines
     axis.ticks = element_line(color = "black"),  # Add black axis ticks
@@ -1842,14 +1484,59 @@ P_emmeans_Q1b <- ggplot(summary_emmeans_Q1b,
   facet_wrap(~ ListenerLang) +  # Facet the plot by ListenerLang
   coord_flip()  # Flip the coordinates to make the bars horizontal
 
-print(P_emmeans_Q1b)
+print(P_emmeans_Q1b_man)
 
-ggsave("Q1b_bar_mean_EIP.svg", plot = P_emmeans_Q1b, width = 10, height = 8, units = "in", dpi = 300, limitsize = FALSE)
+ggsave("Q1b_bar_mean_EIP_man.svg", plot = P_emmeans_Q1b_man, width = 10, height = 8, units = "in", dpi = 300, limitsize = FALSE)
 
+# plot EMMs Chinese group
+
+# filter EMMs Arab group
+summary_emmeans_Q1b_Arab <- summary_emmeans_Q1b %>%
+  filter(summary_emmeans_Q1b$ListenerLang == "Arabic")
+
+
+# plot EMMs Arab group
+P_emmeans_Q1b_Arab <- ggplot(summary_emmeans_Q1b_Arab,
+                            aes(x = ItemType, y = emmean, fill = ItemType)) +
+  geom_bar_pattern(
+    stat = "identity",
+    position = position_dodge(width = 0.8),
+    width = 0.5
+  ) +
+  geom_errorbar(
+    aes(ymin = lower.CL, ymax = upper.CL),
+    width = 0.25,
+    position = position_dodge(width = 0.8)
+  ) +
+  labs(x = "Event Type", y = "Estimated Marginal Mean", title = "Fig4-Arab") +
+  theme_minimal() +
+  scale_y_continuous(
+    limits = c(0, 1200),
+    breaks = seq(0, 1200, by = 100),
+    expand = expansion(mult = c(0, 0.05))  # Add a small expansion at the top
+  ) +
+  theme(
+    text = element_text(family = "Helvetica"),
+    legend.position = "none",
+    axis.line = element_line(color = "black"),  # Add black axis lines
+    axis.ticks = element_line(color = "black"),  # Add black axis ticks
+    axis.ticks.length = unit(0.2, "cm"),  # Length of the ticks
+    axis.text = element_text(color = "black"),  # Black axis labels
+    axis.title = element_text(color = "black"),  # Black axis titles
+    panel.grid = element_blank(),  # Remove grid lines for a clean look
+    panel.spacing = unit(1, "cm"),  # Adjust spacing between panels
+    strip.background = element_blank(),  # Remove default facet strip background
+    strip.text = element_text(color = "black", size = 12)  # Customize facet labels
+  ) +
+  coord_flip()  # Flip the coordinates to make the bars horizontal
+
+print(P_emmeans_Q1b_Arab)
+
+ggsave("Q1b_bar_mean_EIP_Arab.svg", plot = P_emmeans_Q1b_Arab, width = 10, height = 8, units = "in", dpi = 300, limitsize = FALSE)
 
 
 # model 14 (new model relevant for model 7 for Q3a) -----------------------------
-# Q3a LMM for EIP (mean of EIP) as a function of L1 background and NVV ItemEmotion at Gfull -----------------------------------------------------------
+# Q3a LMM for EIP (mean EIP) as a function of L1 background and NVV ItemEmotion at Gfull -----------------------------------------------------------
 # Vocalizations: Listener (MAND, ARAB) x Emotion ((ANG, FER, SAD, HAP) drop HAP-Pleasure)
 # filter mean EIP data for Q3a
 
@@ -1902,7 +1589,7 @@ summary.Q3a.stats.table_duration <- as.data.frame(summary(Q3a_emm_EIP_VOC_L1_dur
 contrasts_df_3a_duration <- as.data.frame(summary.Q3a.stats.table_duration$contrasts)
 nice_table(contrasts_df_3a_duration)
 
-# plot emmeans results Q3a ----------------------------------------------------------- 
+# (Fig 2ab)plot emmeans results Q3a ----------------------------------------------------------- 
 summary_emmeans_Q3a <- as.data.frame(summary(Q3a_emm_EIP_VOC_L1_duration$emmeans))
 
 # plot EMMs of Chinese group
@@ -1925,8 +1612,8 @@ emmeans_Q3a_Chinese <- ggplot(summary_emmeans_Q3a_Chinese,
   ) +
   labs(x = "Vocalization", 
        y = "Estimated Marginal Mean", 
-       title = "(a) Chinese") +
-  theme_minimal() +
+       title = "(a) Chinese group") +
+  theme_classic() +
   scale_fill_manual(
     values = c(
       "Sadness" = "#440154FF",
@@ -1936,26 +1623,27 @@ emmeans_Q3a_Chinese <- ggplot(summary_emmeans_Q3a_Chinese,
     )
   ) +
   scale_y_continuous(
-    limits = c(0, 1300), 
-    breaks = seq(0, 1300, by = 200),
+    limits = c(0, 1200), 
+    breaks = seq(0, 1200, by = 100),
     expand = expansion(mult = c(0, 0.05))  # Add a small expansion at the top
   ) +
   
   theme(
+    text = element_text(family = "Helvetica"),
     legend.position = "none",  # Remove the legend
     axis.line = element_line(color = "black"),  # Add black axis lines
     axis.ticks = element_line(color = "black"),  # Add black axis ticks
     axis.ticks.length = unit(0.2, "cm"),  # Length of the ticks
     axis.text = element_text(color = "black"),  # Black axis labels
     axis.title = element_text(color = "black"),  # Black axis titles
-    panel.grid = element_blank()  # Remove grid lines if you want a clean look
-    # panel.border = element_rect(color = "black", fill = NA, size = 1)  # Add a border around the plot
+    panel.grid.major = element_line(color = "grey80", size = 0.5),  # Remove grid lines if you want a clean look
+    panel.grid.minor = element_blank() # Add a border around the plot
   ) +
   coord_flip()  # Flip the coordinates to make the bars horizontal
 
 print(emmeans_Q3a_Chinese)
 
-ggsave("Q3a_bar_mean_EIP_Chinese.svg", plot = emmeans_Q3a_Chinese, width = 10, height = 8, units = "in", dpi = 300, limitsize = FALSE)
+ggsave("Q3a_bar_mean_EIP_Chinese_v2.svg", plot = emmeans_Q3a_Chinese, width = 10, height = 8, units = "in", dpi = 300, limitsize = FALSE)
 
 # plot EMMs Arab group
 summary_emmeans_Q3a_Arab <- summary_emmeans_Q3a %>%
@@ -1975,7 +1663,7 @@ p_emmeans_Q3a_Arab <- ggplot(summary_emmeans_Q3a_Arab,
   ) +
   labs(x = element_blank(), 
        y = "Estimated Marginal Mean", 
-       title = "(b) Arab") +
+       title = "(b) Arab group") +
   theme_minimal() +
   scale_fill_manual(
     values = c(
@@ -1986,27 +1674,28 @@ p_emmeans_Q3a_Arab <- ggplot(summary_emmeans_Q3a_Arab,
     )
   ) +
   scale_y_continuous(
-    limits = c(0, 1300), 
-    breaks = seq(0, 1300, by = 200),
+    limits = c(0, 1200), 
+    breaks = seq(0, 1200, by = 100),
     expand = expansion(mult = c(0, 0.05))  # Add a small expansion at the top
   ) +
   
   theme(
+    text = element_text(family = "Helvetica"),
     legend.position = "none",  # Remove the legend
     axis.line = element_line(color = "black"),  # Add black axis lines
     axis.ticks = element_line(color = "black"),  # Add black axis ticks
     axis.ticks.length = unit(0.2, "cm"),  # Length of the ticks
     axis.text = element_text(color = "black"),  # Black axis labels
     axis.title = element_text(color = "black"),  # Black axis titles
-    panel.grid = element_blank()  # Remove grid lines if you want a clean look
-   # panel.border = element_rect(color = "black", fill = NA, size = 1)  # Add a border around the plot
+    panel.grid.major  = element_line(colour = "grey80", size = 0.5),  # Remove grid lines if you want a clean look
+    panel.grid.minor  = element_blank()  
   ) +
   coord_flip()  # Flip the coordinates to make the bars horizontal
 
 
 print(p_emmeans_Q3a_Arab)
 
-ggsave("Q3a_bar_mean_EIP_Arab.svg", plot = p_emmeans_Q3a_Arab, width = 10, height = 8, units = "in", dpi = 300, limitsize = FALSE)
+ggsave("Q3a_bar_mean_EIP_Arab_v2.svg", plot = p_emmeans_Q3a_Arab, width = 10, height = 8, units = "in", dpi = 300, limitsize = FALSE)
 
 # # Plot pairwise comparisons
 # summary_contrasts_Q3a <- as.data.frame(summary(Q3a_emm_EIP_VOC_L1_duration$contrasts))
@@ -2020,7 +1709,6 @@ ggsave("Q3a_bar_mean_EIP_Arab.svg", plot = p_emmeans_Q3a_Arab, width = 10, heigh
 #   scale_color_manual(values = c("TRUE" = "red", "FALSE" = "black"), labels = c("Significant", "Not Significant")) +
 #   facet_wrap(~ ListenerLang) +  # Facet by ListenerLang
 #   theme_minimal()
-
 
 
 # model 15 (new model relevant for model 8 for Q3b)-----------------------------------------------------------
@@ -2058,7 +1746,7 @@ contrasts_df_3b_duration <- as.data.frame(summary.Q3b.stats.table_duration$contr
 
 nice_table(contrasts_df_3b_duration)
 
-# plot emmeans results Q3b ----------------------------------------------------- 
+# (Fig 2cd)plot emmeans results Q3b ----------------------------------------------------- 
 
 summary_emmeans_Q3b <- as.data.frame(summary(Q3b_emm_L1_speech_duration$emmeans))
 
@@ -2070,7 +1758,6 @@ summary_emmeans_Q3b_Chinese <- summary_emmeans_Q3b %>%
 nice_table(summary_emmeans_Q3b)
 
 # plot EMMs Chinese group
-#
 emmeans_Q3b_Chinese <- ggplot(summary_emmeans_Q3b_Chinese,
                            aes(x = ItemEmotion, y = emmean, fill = ItemEmotion)) +
   geom_bar(stat = "identity",
@@ -2083,7 +1770,7 @@ emmeans_Q3b_Chinese <- ggplot(summary_emmeans_Q3b_Chinese,
   ) +
   labs(x = "Native prosody", 
        y = "Estimated Marginal Mean", 
-       title = "(c) Chinese") +
+       title = "(c) Chinese group") +
   theme_minimal() +
   scale_fill_manual(
     values = c(
@@ -2094,25 +1781,26 @@ emmeans_Q3b_Chinese <- ggplot(summary_emmeans_Q3b_Chinese,
     )
   ) +
   scale_y_continuous(
-    limits = c(0, 1300), 
-    breaks = seq(0, 1300, by = 200),
+    limits = c(0, 1200), 
+    breaks = seq(0, 1200, by = 100),
     expand = expansion(mult = c(0, 0.05))  # Add a small expansion at the top
   ) +
   theme(
+    text = element_text(family = "Helvetica"),
     legend.position = "none",  # Remove the legend
     axis.line = element_line(color = "black"),  # Add black axis lines
     axis.ticks = element_line(color = "black"),  # Add black axis ticks
     axis.ticks.length = unit(0.2, "cm"),  # Length of the ticks
     axis.text = element_text(color = "black"),  # Black axis labels
     axis.title = element_text(color = "black"),  # Black axis titles
-    panel.grid = element_blank()  # Remove grid lines if you want a clean look
-    #panel.border = element_rect(color = "black", fill = NA, size = 1)  # Add a border around the plot
+    panel.grid.major = element_line(colour = "grey80", size = 0.5),  # Remove grid lines if you want a clean look
+    panel.grid.minor= element_blank()  # Add a border around the plot
   ) +
   coord_flip()  # Flip the coordinates to make the bars horizontal
 
 print(emmeans_Q3b_Chinese)
 
-ggsave("Q3b_bar_mean_EIP_Chinese.svg", plot = emmeans_Q3b_Chinese, width = 10, height = 8, units = "in", dpi = 300, limitsize = FALSE)
+ggsave("Q3b_bar_mean_EIP_Chinese_v2.svg", plot = emmeans_Q3b_Chinese, width = 10, height = 8, units = "in", dpi = 300, limitsize = FALSE)
 
 # plot EMMs Arab group
 summary_emmeans_Q3b_Arab <- summary_emmeans_Q3b %>%
@@ -2132,7 +1820,7 @@ emmeans_Q3b_Arab <- ggplot(summary_emmeans_Q3b_Arab,
   ) +
   labs(x = element_blank(), 
        y = "Estimated Marginal Mean", 
-       title = "(d) Arab") +
+       title = "(d) Arab group") +
   theme_minimal() +
   scale_fill_manual(
     values = c(
@@ -2143,32 +1831,40 @@ emmeans_Q3b_Arab <- ggplot(summary_emmeans_Q3b_Arab,
     )
   ) +
   scale_y_continuous(
-    limits = c(0, 1300), 
-    breaks = seq(0, 1300, by = 200),
+    limits = c(0, 1200), 
+    breaks = seq(0, 1200, by = 100),
     expand = expansion(mult = c(0, 0.05))  # Add a small expansion at the top
   ) +
   coord_flip() + # Flip the coordinates to make the bars horizontal
   theme(
+    text = element_text(family = "Helvetica"),
     legend.position = "none",  # Remove the legend
     axis.line = element_line(color = "black"),  # Add black axis lines
     axis.ticks = element_line(color = "black"),  # Add black axis ticks
     axis.ticks.length = unit(0.2, "cm"),  # Length of the ticks
     axis.text = element_text(color = "black"),  # Black axis labels
     axis.title = element_text(color = "black"),  # Black axis titles
-    panel.grid = element_blank()  # Remove grid lines if you want a clean look
-    #panel.border = element_rect(color = "black", fill = NA, size = 1)  # Add a border around the plot
+    panel.grid.major  = element_line(colour = "grey80", size = 0.5),  # Remove grid lines if you want a clean look
+    panel.grid.minor = element_blank()  # Add a border around the plot
   )
 
 print(emmeans_Q3b_Arab)
 
-ggsave("Q3b_bar_mean_EIP_Arab.svg", plot = emmeans_Q3b_Arab, width = 10, height = 8, units = "in", dpi = 300, limitsize = FALSE)
+ggsave("Q3b_bar_mean_EIP_Arab_v2.svg", plot = emmeans_Q3b_Arab, width = 10, height = 8, units = "in", dpi = 300, limitsize = FALSE)
 
 
+# combine Figure 2 -----------------------------------------------------------
+combined_figure2 <- (emmeans_Q3a_Chinese | p_emmeans_Q3a_Arab) / 
+  (emmeans_Q3b_Chinese | emmeans_Q3b_Arab) +
+  plot_layout(guides = 'collect') &
+  theme(plot.margin = margin(0.2, 0.2, 0.2, 0.2))
 
+print(combined_figure2)
 
+ggsave("Figure2_combine_v2.svg", plot = combined_figure2, width = 7000, height = 5000, units = "px", dpi = 300, limitsize = FALSE)
 
 # model 16 (new model relevant for model 12 for Q4c) ---------------------------------------
-# Q4c LMM for EIP (mean of EIP) as a function of L1 background, event language collapsed on ItemEmotion  -----------------------------------------------------------
+# Q4c LMM for EIP (mean EIP) as a function of L1 background, event language collapsed on ItemEmotion  -----------------------------------------------------------
 # Listener (MAND, ARAB) x Emotion , Event (L1, L2, Foreign)
 
 # filter EIP data for Q4C
@@ -2192,7 +1888,7 @@ tab_model(LMM_Q4c_all_speech_ListLan_meanEIP_duration, show.df = TRUE)
 print(anova(LMM_Q4c_all_speech_ListLan_meanEIP_duration))
 
 # Q4c t-tests -------------------------------------------------------------
-Q4c_emm_meanEIP_all_speech <- emmeans(LMM_Q4c_all_speech_ListLan_meanEIP_duration, revpairwise ~ ItemToListener|ListenerLang, methods ="turkey",
+Q4c_emm_meanEIP_all_speech <- emmeans(LMM_Q4c_all_speech_ListLan_meanEIP_duration, revpairwise ~ ListenerLang|ItemToListener, methods ="turkey",
                                   lmer.df = "satterthwaite", 
                                   lmerTest.limit = 4779)  # Adjust pbkrtest.limit if needed
 
@@ -2228,65 +1924,82 @@ interaction_plot <- emmip(LMM_Q4c_all_speech_ListLan_meanEIP_duration,
 
 interaction_plot
 
-# plot emmeans results of Q4c --------------------------------------------------
+# (Figure 5c) plot emmeans results of Q4c --------------------------------------------------
 
 summary_emmeans_Q4c <- as.data.frame(summary(Q4c_emm_meanEIP_all_speech$emmeans))
 
-summary_emmeans_Q4c$ListenerLang <- factor(
-  summary_emmeans_Q4c$ListenerLang,
-  levels = c("Mandarin", "Arabic")  # Ensure "Chinese" comes before "Arabic"
-)
+summary_emmeans_Q4c_man <- summary_emmeans_Q4c %>%
+  filter(ListenerLang == "Mandarin")
 
-summary_emmeans_Q4c$ItemToListener <- factor(summary_emmeans_Q4c$ItemToListener, 
+summary_emmeans_Q4c_man$ItemToListener <- factor(summary_emmeans_Q4c_man$ItemToListener, 
                                                 levels = c("Foreign", "L2", "L1"))
 
-nice_table(summary_emmeans_Q4c)
+summary_emmeans_Q4c_man$ItemToListener_numeric <- as.numeric(summary_emmeans_Q4c_man$ItemToListener)
 
-# Now create the plot with these colors
-Q4c_legend_labels <- c("L1", "L2", "Foreign")
+nice_table(summary_emmeans_Q4c_man)
+
 
 # plot EMMs Chinese group
-P_emmeans_Q4c <- ggplot(summary_emmeans_Q4c,
-                        aes(x = ItemToListener, y = emmean, fill = ItemToListener)) +
-  geom_bar_pattern(
+P_emmeans_Q4c <- ggplot(summary_emmeans_Q4c_man,
+                        aes(ItemToListener_numeric, y = emmean, fill = ItemToListener)) +
+#   # Background rectangles with increasing alpha
+#   geom_rect(aes(xmin = ItemToListener_numeric - 0.5, xmax = ItemToListener_numeric + 0.5, 
+#                 ymin = -Inf, ymax = 200), alpha = 0.05, fill = "grey30") +
+#   geom_rect(aes(xmin = ItemToListener_numeric - 0.5, xmax = ItemToListener_numeric + 0.5, 
+#                 ymin = 300, ymax = 400), alpha = 0.1, fill = "grey30") +
+#   geom_rect(aes(xmin = ItemToListener_numeric - 0.5, xmax = ItemToListener_numeric + 0.5, 
+#                 ymin = 400, ymax = 500), alpha = 0.15, fill = "grey30") +
+#   geom_rect(aes(xmin = ItemToListener_numeric - 0.5, xmax = ItemToListener_numeric + 0.5, 
+#                 ymin = 500, ymax = 600), alpha = 0.2, fill = "grey30") +
+#   geom_rect(aes(xmin = ItemToListener_numeric - 0.5, xmax = ItemToListener_numeric + 0.5, 
+#                 ymin = 600, ymax = Inf), alpha = 0.25, fill = "grey30") +
+#   
+#   # Annotations for each shaded area, positioned at the bottom
+#   annotate("text", x = 0.6, y = 100, label = "G200", color = "black", size = 4, hjust = 0.5) +
+#   annotate("text", x = 0.6, y = 350, label = "G400", color = "black", size = 4, hjust = 0.5) +
+#   annotate("text", x = 0.6, y = 450, label = "G500", color = "black", size = 4, hjust = 0.5) +
+#   annotate("text", x = 0.6, y = 550, label = "G600", color = "black", size = 4, hjust = 0.5) +
+#   annotate("text", x = 0.6, y = 800, label = "Gfull", color = "black", size = 4, hjust = 0.5) +
+  
+  # Main plot components
+  geom_bar(
     stat = "identity",
     position = position_dodge(width = 0.8),
-    width = 0.5,
-    pattern = ifelse(
-      summary_emmeans_Q4c$ListenerLang == "Mandarin",
-      "stripe",
-      "none"
-    )
-  ) +
+    width = 0.5
+    ) +
   geom_errorbar(
     aes(ymin = lower.CL, ymax = upper.CL),
     width = 0.25,
     position = position_dodge(width = 0.8)
   ) +
-  labs(x = "Familiarity", y = "Estimated Marginal Mean", title = "(4c)") +
+  geom_path(aes(group = ItemToListener), size = 0.8) +  # Single geom_path for all paths
+  
+  coord_flip() +  # Flip the coordinates to make the bars horizontal
+  
+  # Restore original x-axis labels
+  scale_x_continuous(breaks = c(1, 2, 3), labels = c("Foreign", "L2", "L1")) +
+  
+  # Other plot settings and customization
   theme_minimal() +
+  labs(x = "Familiarity", y = "Estimated Marginal Mean", title = "(4c)") +
   scale_y_continuous(
     limits = c(0, 1400),
-    breaks = seq(0, 1400, by = 200),
-    expand = expansion(mult = c(0, 0.05))  # Add a small expansion at the top
+    breaks = seq(0, 1400, by = 100),
+    expand = expansion(mult = c(0, 0.05))
   ) +
   theme(
     legend.position = "none",
-    axis.line = element_line(color = "black"),  # Add black axis lines
-    axis.ticks = element_line(color = "black"),  # Add black axis ticks
-    axis.ticks.length = unit(0.2, "cm"),  # Length of the ticks
-    axis.text = element_text(color = "black"),  # Black axis labels
-    axis.title = element_text(color = "black"),  # Black axis titles
-    panel.grid = element_blank(),  # Remove grid lines for a clean look
-    panel.spacing = unit(1, "cm"),  # Adjust spacing between panels
-    strip.background = element_blank(),  # Remove default facet strip background
-    strip.text = element_text(color = "black", size = 12)  # Customize facet labels
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.ticks.length = unit(0.2, "cm"),
+    axis.text = element_text(color = "black"),
+    axis.title = element_text(color = "black"),
+    panel.grid = element_blank(),
+    panel.spacing = unit(1, "cm"),
+    strip.background = element_blank(),
+    strip.text = element_text(color = "black", size = 12)
   ) +
-  facet_wrap(~ ListenerLang) +  # Facet the plot by ListenerLang
-  scale_fill_manual(values = c("L1" = "#fc9272", "L2" = "#6baed6", "Foreign" = "#8eFae1"),
-                    breaks = Q4c_legend_labels,
-                    labels = Q4c_legend_labels) +
-  coord_flip()  # Flip the coordinates to make the bars horizontal
+  scale_fill_manual(values = c("L1" = "#fc9272", "L2" = "#6baed6", "Foreign" = "#8eFae1"))
 
 print(P_emmeans_Q4c)
 
